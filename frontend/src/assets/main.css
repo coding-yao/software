@@ -1,0 +1,66 @@
+.header {
+  position: fixed;
+  top: 0;
+  /* 固定在顶部 */
+  width: 100%;
+  /* 宽度占满整个屏幕 */
+  background-color: hsl(0, 0%, 100%);
+  /* 背景色 */
+  padding: 10px 0;
+  /* 内边距 */
+  text-align: left;
+  /* 文本居中 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  /* 阴影效果，增加立体感 */
+  z-index: 1000;
+  /* 确保在内容之上 */
+  /* padding-left: 100px; */
+  align-items: center;
+  /* 垂直居中，如果子元素的高度小于父元素的高度 */
+
+  display: flex;
+}
+
+.head-links {
+  display: flex;
+  /* 使链接并排显示 */
+  margin-left: auto;
+  /* 将链接容器推送到右侧 */
+  margin-right: 200px;
+  /* 将链接容器推送到右侧 */
+}
+
+.head-links p {
+  margin-left: 10px;
+  /* 如果需要，给链接之间添加一些间距 */
+  text-decoration: none;
+  color: black;
+  background-color: aliceblue;
+  padding: 10px 20px;
+
+}
+
+.headtext {
+  margin-left: 200px;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: rgb(102, 95, 95);
+  /* 文本颜色 */
+
+}
+
+.ok {
+  background-color: #007bff;
+  /*按钮背景色*/
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-right: 20px;
+}
+
+.ok:hover {
+  background-color: #0056b3;
+  /* 按钮鼠标悬停时的背景色*/
+}

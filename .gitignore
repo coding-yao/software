@@ -1,2 +1,8 @@
 # 虚拟环境
 /.venv
+
+# 前端程序的运行环境
+frontend/node_modules
+
+# Editor directories and files
+.vscode/*
