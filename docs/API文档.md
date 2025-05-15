@@ -1,10 +1,10 @@
 # 水产养殖监控系统 API 文档
 
-## 1. 基础信息
+## 1. 主要信息
 
 ### 1.1 水文气象数据
 
-- **URL**: `/api/hydro-meteorological/`
+- **URL**: `/api/main-info/hydro-meteorological/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
@@ -33,7 +33,7 @@
 
 ### 1.2 设备状态
 
-- **URL**: `/api/device-status/`
+- **URL**: `/api/main-info/device-status/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
@@ -63,7 +63,7 @@
 
 ### 1.3 历史记录查询
 
-- **URL**: `/api/historical-data/`
+- **URL**: `/api/main-info/historical-data/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
@@ -94,7 +94,7 @@
 
 ### 2.1 鱼群信息
 
-- **URL**: `/api/fish-population/`
+- **URL**: `/api/underwater-sys/fish-population/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
@@ -123,7 +123,7 @@
 
 ### 2.2 设备信息
 
-- **URL**: `/api/underwater-devices/`
+- **URL**: `/api/underwater-sys/underwater-devices/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **响应**:
@@ -155,7 +155,7 @@
 
 ### 3.1 气象数据
 
-- **URL**: `/api/weather-data/`
+- **URL**: `/api/underwater-sys/weather-data/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
@@ -183,7 +183,7 @@
 
 ### 3.2 鱼群数据
 
-- **URL**: `/api/fish-data/`
+- **URL**: `/api/underwater-sys/fish-data/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
@@ -225,7 +225,7 @@
 
 ### 3.3 AI决策
 
-- **URL**: `/api/ai-decision/`
+- **URL**: `/api/underwater-sys/ai-decision/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
