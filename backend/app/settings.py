@@ -47,7 +47,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'api',
     'corsheaders',  # 添加应用
 ]
 
@@ -63,6 +62,29 @@ MIDDLEWARE = [
 
 ]
 CORS_ALLOW_ALL_ORIGINS = True
+
+# JWT 认证框架
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+# 数据库配置
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',     
+        'NAME': 'your_database_name',            
+        'USER': 'your_mysql_user',
+        'PASSWORD': 'your_mysql_password',
+        'HOST': 'localhost',                     
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4',
+        },
+    }
+}
 
 ROOT_URLCONF = 'app.urls'
 

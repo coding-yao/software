@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/main-info/', include('main_info.urls')),
     #path('api/smarthub/', include('smarthub.urls')),
     #path('api/underwater-sys/', include('underwater_sys.urls')),
+    path('api/user/', include('user.urls')),
 ]
