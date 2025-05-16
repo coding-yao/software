@@ -29,7 +29,7 @@ export default {
     // 从后端获取数据
     async fetchData() {
       try {
-        const response = await axios.get('http://localhost:8000/api/get_fish_data'); //向后端的api应用里发出get请求
+        const response = await axios.get('http://localhost:8000/api/fishdata/get_fish_data'); //向后端的api应用里发出get请求
         console.log(response);
         // _________________________________________
         this.speciesData = response.data;
