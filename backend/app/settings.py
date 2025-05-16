@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     # 功能实现app
+    'core',
     'user',
     'main_info',
     'smarthub',
