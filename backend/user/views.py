@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.contrib.auth.hashers import make_password, check_password
 from django.shortcuts import get_object_or_404
 from core.permissions import IsAdminUser, IsApproved
@@ -95,7 +95,31 @@ def login_user(request):
     })
 
 
-# ---------- 已通过账号权限 ----------
+# ---------- 注册账号权限 ----------
+
+
+# 更新access token
+@api_view(['POST'])
+@permission_classes([IsApproved])
+def access(request):
+    refresh_token_str = request.data.get('refresh')
+
+    if not refresh_token_str:
+        return Response({'error': 'missing refresh token'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # 从字符串创建 RefreshToken 对象
+        refresh = RefreshToken(refresh_token_str)
+
+        # 验证通过，刷新 access token
+        new_access = refresh.access_token
+
+        return Response({
+            'access': str(new_access)
+        }, status=status.HTTP_200_OK)
+
+    except TokenError as e:
+        return Response({'error': 'invalid refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 # 获取用户信息
