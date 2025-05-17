@@ -1,34 +1,27 @@
 <template>
-    <div class="header"> <!--页面顶端的浮动框-->
-        <p class='headtext'>海洋牧场 某某页面(page2)</p>
-        <div class="head-links">
-            <button class="ok" @click="jump1()">跳转1</button>
-            <button class="ok" @click="jump2()">跳转2</button>
-        </div>
+    <NavBar current-page="page2" />
+    <div class="main-content">
+        <!-- 这里可以添加页面2的内容 -->
     </div>
-
-
 </template>
 
 <script>
-import axios from 'axios';
+import NavBar from '@/components/NavBar.vue'
 
 export default {
+    components: {
+        NavBar
+    },
     data() {
         return {
-
         };
-    },
-    methods: {
-        jump1() {
-            console.log("跳转1");
-        },
-        jump2() {
-            console.log("跳转2");
-        }
-    }  //end methods
-} // end export
-
+    }
+}
 </script>
 
-<style></style>
+<style scoped>
+.main-content {
+    margin-top: 80px; /* 为固定定位的导航栏留出空间 */
+    padding: 20px;
+}
+</style>

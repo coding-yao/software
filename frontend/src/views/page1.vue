@@ -1,22 +1,19 @@
 <template>
-  <div class="header"> <!--页面顶端的浮动框-->
-    <p class='headtext'>海洋牧场 某某页面(page1)</p>
-    <div class="head-links">
-      <button class="ok" @click="jump1()">跳转1</button>
-      <button class="ok" @click="jump2()">跳转2</button>
-    </div>
-  </div>
+  <NavBar current-page="page1" />
   <div class="figures-container">     <!-- 各种图的容器 -->
     <div ref="pieChart" style="width: 600px; height: 400px;"></div>
   </div>
-
 </template>
 
 <script>
 import * as echarts from 'echarts';
 import axios from 'axios';
+import NavBar from '@/components/NavBar.vue';
 
 export default {
+  components: {
+    NavBar
+  },
   data() {
     return {
       speciesData: []  // 存储后端返回的数据
@@ -106,6 +103,7 @@ export default {
     justify-content: center;
     align-items: center;
     background-color: #f4f4f4;
+    margin-top: 80px; /* 为固定定位的导航栏留出空间 */
 }
 
 </style>
