@@ -19,7 +19,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/main-info/', include('main_info.urls')),
+    path('api/main_info/', include('main_info.urls')),
     path('api/fishdata/', include('api.urls')),
     # path('api/smarthub/', include('smarthub.urls')),
     # path('api/underwater-sys/', include('underwater_sys.urls')),

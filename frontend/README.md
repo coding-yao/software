@@ -20,4 +20,4 @@ npm run dev
 在最外层的backend目录下运行 python manage.py runsever 即可运行起后端程序
 
 
-前后端程序都运行起来后，点前端程序所运行的终端上的链接。打开网页后目前可以把/login换成/page1 就能看到刚添加的图
+前后端程序都运行起来后，点前端程序所运行的终端上的链接。打开网页后目前可以把/login换成/underwater 就能看到刚添加的图

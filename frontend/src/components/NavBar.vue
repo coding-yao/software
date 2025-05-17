@@ -8,13 +8,13 @@
       >主要信息</button>
       <button 
         class="nav-btn" 
-        :class="{ active: currentPage === 'page1' }"
-        @click="$router.push('/page1')"
+        :class="{ active: currentPage === 'underwater' }"
+        @click="$router.push('/underwater')"
       >水下系统</button>
       <button 
         class="nav-btn" 
-        :class="{ active: currentPage === 'page2' }"
-        @click="$router.push('/page2')"
+        :class="{ active: currentPage === 'smarthub' }"
+        @click="$router.push('/smarthub')"
       >智能中心</button>
     </div>
     <div class="title-container">

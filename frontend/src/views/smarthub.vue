@@ -1,5 +1,5 @@
 <template>
-    <NavBar current-page="page2" />
+    <NavBar current-page="smarthub" />
     <div class="main-content">
         <!-- 这里可以添加页面2的内容 -->
     </div>

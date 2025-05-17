@@ -4,7 +4,7 @@
 
 ### 1.1 水文气象数据
 
-- **URL**: `/api/main-info/hydro-meteorological/`
+- **URL**: `/api/main_info/hydro-meteorological/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
@@ -33,7 +33,7 @@
 
 ### 1.2 设备状态
 
-- **URL**: `/api/main-info/device-status/`
+- **URL**: `/api/main_info/device-status/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
@@ -63,7 +63,7 @@
 
 ### 1.3 历史记录查询
 
-- **URL**: `/api/main-info/historical-data/`
+- **URL**: `/api/main_info/historical-data/`
 - **Method**: `GET`
 - **权限**: 所有用户
 - **参数**:
