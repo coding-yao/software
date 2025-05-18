@@ -55,10 +55,42 @@ def hydro_meteorological(request):
         "status": 200,
         "message": "success",
         "data": {
-            "temperature": 25.0,
-            "humidity": 60.0,
-            "wind_speed": 5.0,
-            "precipitation": 0.0
+            "voltage": 25.9,
+            "salinity": 34.16,
+            "dissolved_oxygen": 0.0,
+            "turbidity": 2.05,
+            "ph": 8.37,
+            "temperature": 15.0,
+        }
+    }
+    return JsonResponse(data)
+
+@api_view(['GET'])
+def device_status(request):
+    """
+    设备状态
+    返回：
+    - device_id: 设备ID
+    - main_control: 主控状态
+        - version: 版本号
+        - temperature: 温度
+    - secondary_control: 次控状态
+        - connection_status: 连接状态
+    - last_calibration: 最后校准时间
+    """
+    data = {
+        "status": 200,
+        "message": "success",
+        "data": {
+            "device_id": "DEVICE_001",
+            "main_control": {
+                "version": "v1.0.0",
+                "temperature": 35.5
+            },
+            "secondary_control": {
+                "connection_status": "断开"
+            },
+            "last_calibration": "2025-05-20 10:00:00"
         }
     }
     return JsonResponse(data)
@@ -253,7 +285,7 @@ def historical_data(request):
         # 处理日期参数
         end_date = request.GET.get('end_date')
         if not end_date:
-            end_date = '2020-12-17'
+            end_date = '2020-05-17'
         
         start_date = request.GET.get('start_date')
         if not start_date:

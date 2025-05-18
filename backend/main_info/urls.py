@@ -10,4 +10,5 @@ urlpatterns = [
     path('get_provinces/', views.get_provinces, name='get_provinces'),
     path('get_basins/', views.get_basins, name='get_basins'),
     path('get_stations/', views.get_stations, name='get_stations'),
+    path('device_status/', views.device_status, name='device_status'),
 ]

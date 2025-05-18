@@ -1,5 +1,5 @@
 <template>
-  <NavBar current-page="page1" />
+  <NavBar current-page="underwater" />
   <div class="figures-container">     <!-- 各种图的容器 -->
     <div ref="pieChart" style="width: 600px; height: 400px;"></div>
   </div>
