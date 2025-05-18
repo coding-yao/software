@@ -2,15 +2,18 @@
     <NavBar current-page="smarthub" />
     <div class="main-content">
         <!-- 这里可以添加页面2的内容 -->
+        <WeatherWidget />
     </div>
 </template>
 
 <script>
 import NavBar from '@/components/NavBar.vue'
+import WeatherWidget from '@/components/WeatherWidget.vue';
 
 export default {
     components: {
-        NavBar
+        NavBar,
+        WeatherWidget
     },
     data() {
         return {
