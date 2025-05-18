@@ -129,7 +129,10 @@ export default {
       return weatherCodes[code] || `未知天气代码: ${code}`;
     },
     formatTime(isoTime) {
-      return new Date(isoTime).toLocaleString();
+      if (!isoTime) return '未知';
+      const date = new Date(isoTime);
+      date.setUTCMinutes(date.getUTCMinutes() + 480); // GMT + 8小时
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     },
     async updateLocationName(lat, lng) {
       // 先检查常见城市缓存
