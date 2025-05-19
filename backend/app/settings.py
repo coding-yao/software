@@ -34,9 +34,7 @@ INSTALLED_APPS = [
     # 功能实现app
     'core',
     'user',
-    'main_info',
-    'smarthub',
-    'underwater_sys',
+    'fish_data',
     
     # 基础组件app
     'rest_framework',
