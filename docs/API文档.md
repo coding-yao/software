@@ -259,7 +259,7 @@
 
 ### 4.1 用户管理
 
-- **URL**: `/api/users/`
+- **URL**: `/api/user/list/`
 - **Method**: `GET` (获取用户列表)
 - **权限**: 管理员
 - **响应**:
@@ -267,28 +267,54 @@
 ```json
 {
   "status": "success",
-  "data": [
+  "user_list": [
     {
-      "id": 1,
-      "username": "user1",
-      "email": "user1@example.com",
+      "user_id": 1,
+      "account": "user1",
+      "is_approved": false,
       "role": "user",
-      "status": "active",
-      "created_at": "2025-05-10T10:00:00Z"
+      "create_time": "2025-05-16T14:22:41Z"
+    }
+    {
+      "user_id": 2,
+      "account": "user2",
+      "is_approved": true,
+      "role": "user",
+      "create_time": "2025-05-16T14:22:41Z"
     }
   ]
 }
 ```
 
-- **URL**: `/api/users/{user_id}/`
-- **Method**: `PUT` (更新用户信息)
-- **权限**: 管理员
-- **请求体**:
+- **URL**: `/api/user/info/<int:user_id>/`
+- **Method**: `GET`(获取用户信息)
+- **权限**: `IsApproved`
+- **响应**:
 
 ```json
 {
+  "status": "success",
+  "user": {
+    "user_id": 1,
+    "account": "user1",
+    "is_approved": true,
+    "role": "user",
+    "created_at": "2025-05-10T10:00:00Z"
+  }
+}
+```
+
+- **URL**: `/api/user/update/{user_id}/`
+- **Method**: `PUT` (更新用户信息)
+- **权限**: 管理员
+- **请求体**:(可选，但是至少包含一条修改内容)
+
+```json
+{
+  "account": "newaccount",
+  "password": "newpassword",
+  "is_approved": true,
   "role": "admin",
-  "status": "inactive"
 }
 ```
 
@@ -297,7 +323,13 @@
 ```json
 {
   "status": "success",
-  "message": "用户信息已更新"
+  "message": "update success",
+  "user": {
+    "user_id": 1,
+    "account": "newaccount",
+    "is_approved": true,
+    "role": "role"
+  }
 }
 ```
 
@@ -324,18 +356,16 @@
 
 ### 5.1 用户注册
 
-- **URL**: `/api/auth/register/`
+- **URL**: `/api/user/register/`
 - **Method**: `POST`
 - **权限**: 公开
 - **请求体**:
 
 ```json
 {
-  "username": "newuser",
-  "email": "newuser@example.com",
+  "account": "newuser",
   "password": "password123",
-  "role": "user",
-  "is_admin": false
+  "role": "user"
 }
 ```
 
@@ -344,28 +374,27 @@
 ```json
 {
   "status": "success",
-  "message": "注册成功",
+  "message": "register success",
   "user": {
-    "id": 2,
-    "username": "newuser",
-    "email": "newuser@example.com",
-    "role": "user",
-    "created_at": "2025-05-12T13:00:00Z"
+    "user_id": 2,
+    "account": "newuser",
+    "role": "user"
   },
-  "token": "your-auth-token"
+  "access": "access-token",
+  "refresh": "refresh-token"
 }
 ```
 
 ### 5.2 用户登录
 
-- **URL**: `/api/auth/login/`
+- **URL**: `/api/user/login/`
 - **Method**: `POST`
 - **权限**: 公开
 - **请求体**:
 
 ```json
 {
-  "email": "user@example.com",
+  "account": "newuser",
   "password": "password123"
 }
 ```
@@ -377,61 +406,51 @@
   "status": "success",
   "message": "登录成功",
   "user": {
-    "id": 1,
-    "username": "user1",
-    "email": "user1@example.com",
+    "user_id": 1,
+    "account": "user1",
     "role": "user"
   },
-  "token": "your-auth-token"
+  "access": "access-token",
+  "refresh": "refresh-token"
 }
 ```
 
-### 5.3 获取当前用户信息
+### 5.3 刷新令牌
 
-- **URL**: `/api/auth/user/`
-- **Method**: `GET`
-- **权限**: 已登录用户
-- **响应**:
-
-```json
-{
-  "status": "success",
-  "data": {
-    "id": 1,
-    "username": "user1",
-    "email": "user1@example.com",
-    "role": "user",
-    "created_at": "2025-05-10T10:00:00Z"
-  }
-}
-```
-
-### 5.4 刷新令牌
-
-- **URL**: `/api/auth/refresh-token/`
+- **URL**: `/api/user/access/`
 - **Method**: `POST`
-- **权限**: 已登录用户
-- **响应**:
+- **权限**: `IsApproved`
+- **请求**:
 
 ```json
 {
-  "status": "success",
-  "token": "new-auth-token"
+  "user_id": 1,
+  "refresh": "refresh-token"
 }
 ```
 
-### 5.5 登出
-
-- **URL**: `/api/auth/logout/`
-- **Method**: `POST`
-- **权限**: 已登录用户
 - **响应**:
 
 ```json
 {
   "status": "success",
-  "message": "已登出"
+  "access": "new-auth-token"
 }
+```
+
+### 5.4 渔民注册
+
+- **URL**: `/api/user/register_fisher/`
+- **Method**: `POST`
+- **权限**: `IsApproved`
+- **请求**:
+
+```json
+```
+
+- **响应**:
+
+```json
 ```
 
 ## 错误处理
