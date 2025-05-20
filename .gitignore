@@ -1,6 +1,6 @@
 # 虚拟环境
 /.venv
-
+.idea
 # Python 二进制文件
 __pycache__/
 *.pyc
