@@ -13,9 +13,9 @@ Config
 """
 HOST = "localhost"
 USER = "root"
-PASSWORD = "25858.asd"
+PASSWORD = ""
 
-Fish_Path = r"C:\Code\projects\software\database\软件工程大作业数据\Fish.csv"
+Fish_Path = r""
 Water_Path = r"C:\Users\31460\Desktop\study_file\软件工程\实验\课设\水质数据\water_quality_by_name"
 
 """
