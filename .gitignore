@@ -1,11 +1,21 @@
 # 虚拟环境
 /.venv
+.idea
 
 # Python 二进制文件
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# 数据库迁移文件
+**/migrations/
+
+# SQLite 数据库文件
+*.sqlite3
+
+# 配置文件
+**/config.ini
 
 # 前端程序的运行环境
 frontend/node_modules

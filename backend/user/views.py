@@ -39,9 +39,6 @@ def register_user(request):
         role=role
     )
 
-    # 生成token
-    token = generate_token_for_user(user)
-
     return Response({
         'status': 'success',
         'message': 'register success',
@@ -50,8 +47,6 @@ def register_user(request):
             'account': user.account,
             'role': user.role
         },
-        'access': str(token.access_token),
-        'refresh': str(token),
     }, status=status.HTTP_201_CREATED)
 
 
