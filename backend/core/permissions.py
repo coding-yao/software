@@ -1,4 +1,4 @@
-# user/permissions.py
+# core/permissions.py
 from rest_framework.permissions import BasePermission
 
 
@@ -11,7 +11,7 @@ class IsApproved(BasePermission):
 # 渔民权限
 class IsFisher(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and hasattr(request.user, 'fishers')
+        return request.user and request.user.is_authenticated and hasattr(request.user, 'fisher')
 
 
 # 管理员权限
