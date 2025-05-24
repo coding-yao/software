@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     # 功能实现app
     'core',
     'user',
-    'fish_data',
+    'fish',
     
     # 基础组件app
     'rest_framework',

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 
 class User(AbstractBaseUser, PermissionsMixin):
+    id = models.AutoField(primary_key=True)
     account = models.CharField(max_length=32, unique=True)
     password = models.CharField(max_length=128)
     role = models.CharField(max_length=16, default='user')
@@ -18,6 +19,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Fisher(models.Model):
+    id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='fisher')
 
     def __str__(self):
