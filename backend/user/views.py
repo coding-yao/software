@@ -98,6 +98,7 @@ def login_user(request):
 @api_view(['POST'])
 @permission_classes([IsActive])
 def access(request):
+    print("in access,请求新的token")
     refresh_token_str = request.data.get('refresh')
 
     if not refresh_token_str:
@@ -218,6 +219,32 @@ def update_user_info(request, user_id):
     return Response({
         'status': 'success',
         'message': 'update success',
+        'user': {
+            'user_id': user.id,
+            'account': user.account,
+            'role': user.role
+        }
+    })
+
+
+# 更新用户信息
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def approve_user(request, user_id):
+    # 检查用户是否已经注册
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # 更新用户信息
+    user.is_active = True
+
+    user.save()
+
+    return Response({
+        'status': 'success',
+        'message': 'activate success',
         'user': {
             'user_id': user.id,
             'account': user.account,

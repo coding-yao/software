@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     
     # 基础组件app
     'rest_framework',
+    #前后端跨域通信要求
+    'corsheaders',  
 
     # Django内置app
     'django.contrib.admin',
@@ -61,7 +63,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  #跨域通信需求
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
