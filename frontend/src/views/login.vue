@@ -6,6 +6,12 @@
                 <input type="text" placeholder="用户名" ref="register-username"> <!-- 三个输入框 -->
                 <input type="password" placeholder="密码" ref="register-password">
                 <input type="password" placeholder="确认密码" ref="register-confirm-password">
+                <select ref="register-role">
+                    <option value="" disabled selected>选择用户身份</option>
+                    <option value="viewer">游客</option>
+                    <option value="fisher">渔民</option>
+                    <option value="admin">管理员</option>
+                </select>
             </div>
             <button class="ok" @click="register()">注册</button> <!-- 注册按钮 点击触发script中的register函数逻辑 -->
             <p class="register-title">
@@ -25,7 +31,6 @@
 
         </div>
     </div>
-    <button class="ok" @click="idle()">跳转</button> <!--暂时加的 在页面底端 目前没用-->
 
 </template>
 
@@ -46,6 +51,8 @@ export default {
             const username = this.$refs['register-username'].value; //这两行从输入框里获取信息 
             const password = this.$refs['register-password'].value;
             const confirmPassword = this.$refs['register-confirm-password'].value;
+            const role = this.$refs['register-role'].value;
+            console.log(role);
             if (!username || !password || !confirmPassword) {// 对输入的内容进行合法性检验
                 alert('请填写完整的用户名、密码和确认密码');
                 return;
@@ -55,14 +62,12 @@ export default {
                 return;
             }
             const regesterdata = { // 构建要发送到后端的数据信息
-                type: 0,//0代表注册信息 这是因为此时注册和登录都是发送到/reg这个url 要通过type来标识是注册还是登录信息
-                // 我们后续可以把注册和登录的逻辑分开 发送到不同的url从而用不同函数处理
-                username: username,
+                account: username,
                 password: password,
+                role: role,
             };
-            const url = `http://localhost:5000/reg`; // 构建url 发送到后台的/reg这个url 
+            const url = `http://localhost:8000/api/user/register/`; // 构建url 发送到后台的/reg这个url 
             axios   // 数据通信的逻辑 调用axios 使用post请求方法发送数据到后端
-                // 我们在后端代码中使用Django的相关逻辑接收此post请求即可 我之前也没用过 刚刚在问ai
                 .post(url, regesterdata)
                 .then((response) => {   // 接收后端发来的response 或error
                     alert(response.data.message);
@@ -86,16 +91,23 @@ export default {
                 return;
             }
             const logindata = {
-                type: 1,//1为登录信息
-                username: username,
+                account: username,
                 password: password,
             };
-            const url = `http://localhost:5000/reg`;
+            const url = `http://localhost:8000/api/user/login/`;
             axios
                 .post(url, logindata)
                 .then((response) => {
+                    console.log(response.data.access);
+                    localStorage.setItem('accesstoken', response.data.access); // Access Token
+                    localStorage.setItem('refresh_token', response.data.refresh); // Refresh Token
+                    localStorage.setItem('user_id', response.data.user.user_id); // userid
+
                     alert(response.data.message); // 显示登录成功的消息
-                    this.$router.push("/home"); // 导航到首页
+                    if (response.data.user.role == 'admin')
+                        this.$router.push("/adminpage"); 
+                    else
+                        this.$router.push("/main");// 导航到首页
                 })
                 .catch((error) => {
                     if (error.response && error.response.data) {
@@ -144,6 +156,14 @@ export default {
 }
 
 .input-box input {
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    /* 输入框圆角 */
+}
+
+select {
     margin-bottom: 10px;
     padding: 10px;
     border: 1px solid #ccc;
