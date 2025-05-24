@@ -34,6 +34,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+ROOT_URLCONF = 'app.urls'
+
+AUTH_USER_MODEL = 'user.User'
+
 
 # Application definition
 
@@ -65,7 +71,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
 ]
-CORS_ALLOW_ALL_ORIGINS = True
+
 
 # JWT 认证框架
 REST_FRAMEWORK = {
@@ -74,7 +80,6 @@ REST_FRAMEWORK = {
     )
 }
 
-ROOT_URLCONF = 'app.urls'
 
 TEMPLATES = [
     {
