@@ -34,6 +34,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+ROOT_URLCONF = 'app.urls'
+
+AUTH_USER_MODEL = 'user.User'
+
 
 # Application definition
 
@@ -45,6 +51,8 @@ INSTALLED_APPS = [
     
     # 基础组件app
     'rest_framework',
+    #前后端跨域通信要求
+    'corsheaders',  
 
     # Django内置app
     'django.contrib.admin',
@@ -55,7 +63,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  #跨域通信需求
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -65,10 +76,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
 ]
-CORS_ALLOW_ALL_ORIGINS = True
 
-# 用户模型
-AUTH_USER_MODEL = 'user.User'
 
 # JWT 认证框架
 REST_FRAMEWORK = {
@@ -77,7 +85,6 @@ REST_FRAMEWORK = {
     )
 }
 
-ROOT_URLCONF = 'app.urls'
 
 TEMPLATES = [
     {

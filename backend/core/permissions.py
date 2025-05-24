@@ -3,9 +3,9 @@ from rest_framework.permissions import BasePermission
 
 
 # 注册用户权限
-class IsApproved(BasePermission):
+class IsActive(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.is_approved
+        return request.user and request.user.is_authenticated and request.user.is_active
     
 
 # 渔民权限

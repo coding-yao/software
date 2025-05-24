@@ -4,15 +4,16 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.contrib.auth.hashers import make_password, check_password
 from django.shortcuts import get_object_or_404
-from core.permissions import IsAdminUser, IsApproved
+from core.permissions import IsAdminUser, IsActive
 from .models import User, Fisher
 
 
 def generate_token_for_user(user):
-    refresh = RefreshToken()
-    refresh['account'] = user.user_id
+    refresh = RefreshToken.for_user(user)
+    refresh['account'] = user.account
     refresh['role'] = user.role
     return refresh
+
 
 
 # 用户注册
@@ -35,7 +36,7 @@ def register_user(request):
     user = User.objects.create(
         account=account,
         password=make_password(password),
-        is_approved=False,
+        is_active=False,
         role=role
     )
 
@@ -43,7 +44,7 @@ def register_user(request):
         'status': 'success',
         'message': 'register success',
         'user': {
-            'user_id': user.user_id,
+            'user_id': user.id,
             'account': user.account,
             'role': user.role
         },
@@ -67,7 +68,7 @@ def login_user(request):
         return Response({'error': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
     
     # 检查用户账号是否通过注册
-    if not user.is_approved:
+    if not user.is_active:
         return Response({'error': 'user is disabled'}, status=status.HTTP_403_FORBIDDEN)
     
     # 检查密码是否正确
@@ -81,7 +82,7 @@ def login_user(request):
         'status': 'success',
         'message': 'login success',
         'user': {
-            'user_id': user.user_id,
+            'user_id': user.id,
             'account': user.account,
             'role': user.role
         },
@@ -95,8 +96,9 @@ def login_user(request):
 
 # 更新access token
 @api_view(['POST'])
-@permission_classes([IsApproved])
+@permission_classes([IsActive])
 def access(request):
+    print("in access,请求新的token")
     refresh_token_str = request.data.get('refresh')
 
     if not refresh_token_str:
@@ -119,23 +121,23 @@ def access(request):
 
 # 获取用户信息
 @api_view(['GET'])
-@permission_classes([IsApproved])
-def get_user_info(request, user_id):
+@permission_classes([IsActive])
+def get_user_info(request, id):
     # 获取指定 user_id 的用户
-    user = get_object_or_404(User, pk=user_id)
+    user = get_object_or_404(User, pk=id)
 
     # 返回用户信息
     return Response({
-        'user_id': user.user_id,
+        'user_id': user.id,
         'account': user.account,
-        'is_approved': user.is_approved,
+        'is_active': user.is_active,
         'role': user.role,
         'create_time': user.create_time,
     }, status=status.HTTP_200_OK)
 
 # 渔民注册
 @api_view(['POST'])
-@permission_classes([IsApproved])
+@permission_classes([IsActive])
 def register_fisher(request):
     user = request.user
 
@@ -150,8 +152,8 @@ def register_fisher(request):
         'status': 'success',
         'message': 'register success',
         'fisher': {
-            'fisher_id': fisher.fisher_id,
-            'user_id': user.user_id,
+            'fisher_id': fisher.id,
+            'user_id': user.id,
             'account': user.account
         }
     }, status=status.HTTP_201_CREATED)
@@ -164,19 +166,20 @@ def register_fisher(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def get_user_list(request):
+    print(request.user)
     users = User.objects.all()
     user_list = []
 
     # 遍历添加用户信息到列表
     for user in users:
-        user_list.append
-        ({
-            'user_id': user.user_id,
+        user_list.append({
+            'user_id': user.id,
             'account': user.account,
-            'is_approved': user.is_approved,
+            'is_active': user.is_active,
             'create_time': user.create_time,
             'role': user.role
         })
+
 
     return Response({
         'status': 'success',
@@ -199,7 +202,7 @@ def update_user_info(request, user_id):
 
     # 检查用户是否已经注册
     try:
-        user = User.objects.get(user_id=user_id)
+        user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         return Response({'error': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -217,7 +220,33 @@ def update_user_info(request, user_id):
         'status': 'success',
         'message': 'update success',
         'user': {
-            'user_id': user.user_id,
+            'user_id': user.id,
+            'account': user.account,
+            'role': user.role
+        }
+    })
+
+
+# 更新用户信息
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def approve_user(request, user_id):
+    # 检查用户是否已经注册
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'user not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # 更新用户信息
+    user.is_active = True
+
+    user.save()
+
+    return Response({
+        'status': 'success',
+        'message': 'activate success',
+        'user': {
+            'user_id': user.id,
             'account': user.account,
             'role': user.role
         }
@@ -234,10 +263,10 @@ def get_fisher_list(request):
     # 遍历添加渔民信息到列表
     for fisher in fishers:
         fisher_list.append({
-            'fisher_id': fisher.fisher_id,
-            'user_id': fisher.user.user_id,
+            'fisher_id': fisher.id,
+            'user_id': fisher.user.id,
             'account': fisher.user.account,
-            'is_approved': fisher.user.is_approved,
+            'is_active': fisher.user.is_active,
             'create_time': fisher.user.create_time
         })
 
