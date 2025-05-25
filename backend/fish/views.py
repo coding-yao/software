@@ -44,7 +44,7 @@ def get_my_fish_status(request):
     }, status=status.HTTP_200_OK)
 
 
-# 获取所有鱼群的总体信息（仅管理员）
+# 获取所有鱼群的总体信息
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def get_all_fish_status(request):
@@ -97,7 +97,26 @@ def get_fish_list(request):
     fisher = get_object_or_404(Fisher, user=request.user)
     fish_list = Fish.objects.filter(fisher_id=fisher)
     data = [{
-        'fish_id': fish.id,
+        'fisher_id': fish.fisher.id,
+        'species': fish.species,
+        'weight': fish.weight,
+        'length1': fish.length1,
+        'length2': fish.length2,
+        'length3': fish.length3,
+        'height': fish.height,
+        'width': fish.width,
+    } for fish in fish_list]
+    return Response({'fish_group': data}, status=status.HTTP_200_OK)
+
+
+# 获取所有鱼的详细数据列表
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_all_fish_list(request):
+    fisher = get_object_or_404(Fisher, user=request.user)
+    fish_list = Fish.objects.filter(fisher_id=fisher)
+    data = [{
+        'fisher_id': fish.fisher.id,
         'species': fish.species,
         'weight': fish.weight,
         'length1': fish.length1,
