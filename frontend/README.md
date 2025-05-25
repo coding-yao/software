@@ -13,11 +13,5 @@ npm run dev
 
 
 
-后端程序启动方式：
-
-我使用的是python3.12版本,安装Django包.
-
-在最外层的backend目录下运行 python manage.py runsever 即可运行起后端程序
-
 
 前后端程序都运行起来后，点前端程序所运行的终端上的链接。打开网页后目前可以把/login换成/underwater 就能看到刚添加的图

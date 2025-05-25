@@ -1,5 +1,6 @@
 <template>
     <div class="container">
+        <h1 class="title">海洋牧场管理系统</h1>
         <div v-if="isRegisterView" class="register-box"> <!-- 负责注册的组件框 点击“已有账号去登录”时 会和登录组件框相互切换 -->
             <!-- 后续在注册功能中应该还要再加一些信息 比如选择用户组，个人信息和账号简介等 -->
             <div class="input-box">
@@ -102,12 +103,14 @@ export default {
                     localStorage.setItem('accesstoken', response.data.access); // Access Token
                     localStorage.setItem('refresh_token', response.data.refresh); // Refresh Token
                     localStorage.setItem('user_id', response.data.user.user_id); // userid
+                    localStorage.setItem('user_role', response.data.user.role); // user
+                    localStorage.setItem('user_account', response.data.user.account); // user
 
                     alert(response.data.message); // 显示登录成功的消息
                     if (response.data.user.role == 'admin')
                         this.$router.push("/adminpage"); 
                     else
-                        this.$router.push("/main");// 导航到首页
+                        this.$router.push("/underwater");// 导航到首页
                 })
                 .catch((error) => {
                     if (error.response && error.response.data) {
@@ -133,7 +136,31 @@ export default {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #f4f4f4;
+    min-height: 100vh; /* 确保容器至少占满整个视口 */
+    gap:20%;
+    background-image: url('../assets/bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.title {
+  font-family: 'Arial Black', sans-serif;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  text-align: center;
+  color: #ffffff;
+  margin: 0.5em 0;
+  
+  -webkit-text-stroke: 2px rgba(0, 0, 0, 0.2);
+  
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.1),
+    0 16px 32px rgba(0, 0, 0, 0.1),
+    0 0 30px rgba(10, 80, 180, 0.5),
+    0 0 40px rgba(10, 80, 180, 0.5);
+  
 }
 
 .register-box,

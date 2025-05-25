@@ -21,7 +21,7 @@
         <nav class="sidebar-nav">
             <ul>
             <li class="nav-item">
-                <a href="#" class="nav-link" @click="jumpTo('dashboard')">
+                <a href="#" class="nav-link" @click="jumptofigures()">
                 <span class="nav-text" v-show="sidebarExpanded">可视化界面</span>
                 </a>
             </li>
@@ -71,7 +71,6 @@
                             </span>
                             </td>
                             <td>
-                                <!-- 仅当 is_active 为 false 或 0 时显示按钮 -->
                                 <button 
                                 v-if="!user.is_active" 
                                 class="action-button" 
@@ -146,6 +145,9 @@ export default {
         }, 
         collapseSidebar() {
             this.sidebarExpanded = false;
+        },
+        jumptofigures(){
+          this.$router.push("/underwater");// 导航到首页
         },
         get_user_list() {
             const accessToken = localStorage.getItem('accesstoken');
@@ -238,7 +240,7 @@ export default {
                 this.isModalOpen = false;
                 this.get_user_list();
             })
-        }
+        },
 
 
     }  //end methods

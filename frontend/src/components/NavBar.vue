@@ -1,6 +1,10 @@
 <template>
   <div class="header">
     <div class="head-links">
+      <div class="hello">
+        <p>欢迎，{{ userrole }} : {{ useraccount }}</p>
+        <button v-if="userrole == 'viewer'" class="fisher-register" @click="fisher_register()">注册为渔民</button>
+      </div>
       <button 
         class="nav-btn" 
         :class="{ active: currentPage === 'main' }"
@@ -16,7 +20,9 @@
         :class="{ active: currentPage === 'smarthub' }"
         @click="$router.push('/smarthub')"
       >智能中心</button>
+
     </div>
+    
     <div class="title-container">
       <p class='headtext'>海洋牧场 数据可视化页面</p>
     </div>
@@ -27,6 +33,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'NavBar',
   props: {
@@ -37,19 +45,44 @@ export default {
   },
   data() {
     return {
-      currentDateTime: ''
+      currentDateTime: '',
+      userrole: '',
+      useraccount: '',
     };
   },
   mounted() {
     this.updateDateTime();
     setInterval(this.updateDateTime, 1000);
+    this.getuser();
   },
   methods: {
     updateDateTime() {
       const now = new Date();
       // 使用更简洁的时间格式
       this.currentDateTime = now.toLocaleTimeString() + '   ' + now.toLocaleDateString();
-    }
+    },
+    getuser(){
+      this.userrole = localStorage.getItem("user_role");
+      this.useraccount = localStorage.getItem("user_account");
+    },
+    fisher_register(){
+      const accessToken = localStorage.getItem('accesstoken');
+      console.log(accessToken);
+      const data = {};
+      axios
+      .post(
+          `http://localhost:8000/api/user/register_fisher/`, 
+          data,
+          {
+              headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              }
+          }
+      )
+      .then((response) => {   // 接收后端发来的response 或error
+          console.log(response);
+      })
+    },
   }
 }
 </script>
@@ -69,6 +102,12 @@ export default {
   z-index: 1000;
   gap: 1rem;
   box-sizing: border-box;
+}
+
+.hello {
+  display: flex; /* 使用 Flex 布局 */
+  flex-direction: column; /* 垂直排列（列布局） */
+  align-items: center; /* 水平居中对齐 */
 }
 
 .head-links {
@@ -102,6 +141,8 @@ export default {
   transition: all 0.3s ease;
   font-size: clamp(0.8rem, 1.5vw, 1rem);
   white-space: nowrap;
+  height: 50px;
+
 }
 
 .nav-btn:hover {
