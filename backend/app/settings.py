@@ -48,6 +48,9 @@ INSTALLED_APPS = [
     'core',
     'user',
     'fish',
+
+    'environment',
+    'device',
     
     # 基础组件app
     'rest_framework',
