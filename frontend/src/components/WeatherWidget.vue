@@ -121,7 +121,7 @@ export default {
           longitude: this.longitude || '116.4074'
         };
         
-        const response = await axios.get('http://localhost:8000/api/smarthub/weather/', { params });
+        const response = await axios.get('http://localhost:8000/api/weather/get_weather/', { params });
         
         if (!response.data) {
           throw new Error('API返回空响应');
