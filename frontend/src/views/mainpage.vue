@@ -442,7 +442,7 @@ export default {
     
     async fetchProvinces() {
       try {
-        const response = await axios.get('http://localhost:8000/api/main_info/get_provinces')
+        const response = await axios.get('http://localhost:8000/api/environment/get_provinces')
         this.provinces = response.data.data
       } catch (error) {
         console.error('获取省份列表失败:', error)
@@ -452,7 +452,7 @@ export default {
     async handleProvinceChange() {
       if (this.selectedProvince) {
         try {
-          const response = await axios.get(`http://localhost:8000/api/main_info/get_basins?province=${this.selectedProvince}`)
+          const response = await axios.get(`http://localhost:8000/api/environment/get_basins?province=${this.selectedProvince}`)
           this.basins = response.data.data
           this.selectedBasin = ''
           this.selectedStation = ''
@@ -466,7 +466,7 @@ export default {
     async handleBasinChange() {
       if (this.selectedBasin) {
         try {
-          const response = await axios.get(`http://localhost:8000/api/main_info/get_stations?province=${this.selectedProvince}&basin=${this.selectedBasin}`)
+          const response = await axios.get(`http://localhost:8000/api/environment/get_stations?province=${this.selectedProvince}&basin=${this.selectedBasin}`)
           this.stations = response.data.data
           this.selectedStation = ''
         } catch (error) {
@@ -485,7 +485,7 @@ export default {
       if (!this.canSearch) return
       
       try {
-        const response = await axios.get('http://localhost:8000/api/main_info/historical_data', {
+        const response = await axios.get('http://localhost:8000/api/environment/historical_data', {
           params: {
             province: this.selectedProvince,
             basin: this.selectedBasin,
@@ -542,7 +542,7 @@ export default {
 
     async fetchDeviceStatus() {
       try {
-        const response = await axios.get('http://localhost:8000/api/main_info/device_status')
+        const response = await axios.get('http://localhost:8000/api/device/device_status')
         if (response.data.status === 200) {
           this.deviceStatus = response.data.data
         }
@@ -553,7 +553,7 @@ export default {
 
     async fetchHydroMeteorological() {
       try {
-        const response = await axios.get('http://localhost:8000/api/main_info/hydro_meteorological')
+        const response = await axios.get('http://localhost:8000/api/environment/hydro_meteorological')
         if (response.data.status === 200) {
           this.hydroMeteorological = response.data.data
         }
