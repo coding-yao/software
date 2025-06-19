@@ -5,7 +5,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
     account = models.CharField(max_length=32, unique=True)
     password = models.CharField(max_length=128)
-    role = models.CharField(max_length=16, default='user')
+    role = models.CharField(max_length=16, default='viewer')
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     create_time = models.DateTimeField(auto_now_add=True)

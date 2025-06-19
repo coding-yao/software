@@ -8,8 +8,8 @@
                 <input type="password" placeholder="密码" ref="register-password">
                 <input type="password" placeholder="确认密码" ref="register-confirm-password">
                 <select ref="register-role">
-                    <option value="" disabled selected>选择用户身份</option>
-                    <option value="viewer">游客</option>
+                    <option value="" disabled>选择用户身份</option>
+                    <option value="viewer" selected>游客</option>
                     <option value="fisher">渔民</option>
                     <option value="admin">管理员</option>
                 </select>

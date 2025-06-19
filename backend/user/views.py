@@ -22,7 +22,7 @@ def register_user(request):
     data = request.data
     account = data.get('account')
     password = data.get('password')
-    role = data.get('role', 'user')
+    role = data.get('role', 'viewer')
 
     # 检查参数
     if not account:
@@ -39,6 +39,9 @@ def register_user(request):
         is_active=False,
         role=role
     )
+
+    if role == 'fisher':
+        Fisher.objects.create(user=user)
 
     return Response({
         'status': 'success',
