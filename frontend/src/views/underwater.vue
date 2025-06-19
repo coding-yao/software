@@ -429,9 +429,7 @@ export default {
   min-height: 100vh;
   display: flex;
   margin-top: 150px;
-
-    /* 渐变背景 - 从浅蓝到深蓝 */
-  background: linear-gradient(135deg,#38a5f8 0%, #8ccaf9 50%, #e6f7ff 100%);
+  background: white;
   
 
 }

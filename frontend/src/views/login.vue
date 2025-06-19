@@ -110,7 +110,7 @@ export default {
                     if (response.data.user.role == 'admin')
                         this.$router.push("/adminpage"); 
                     else
-                        this.$router.push("/underwater");// 导航到首页
+                        this.$router.push("/main");// 导航到首页
                 })
                 .catch((error) => {
                     if (error.response && error.response.data) {

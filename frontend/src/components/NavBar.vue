@@ -1,10 +1,6 @@
 <template>
   <div class="header">
-    <div class="head-links">
-      <div class="hello">
-        <p>欢迎，{{ userrole }} : {{ useraccount }}</p>
-        <button v-if="userrole == 'viewer'" class="fisher-register" @click="fisher_register()">注册为渔民</button>
-      </div>
+    <div class="left-buttons">
       <button 
         class="nav-btn" 
         :class="{ active: currentPage === 'main' }"
@@ -20,14 +16,13 @@
         :class="{ active: currentPage === 'smarthub' }"
         @click="$router.push('/smarthub')"
       >智能中心</button>
+    </div>
 
-    </div>
-    
-    <div class="title-container">
-      <p class='headtext'>海洋牧场 数据可视化页面</p>
-    </div>
-    <div class="date-time">
-      {{ currentDateTime }}
+    <div class="title">海洋牧场 数据可视化页面</div>
+
+    <div class="right-info">
+      <span>欢迎，{{ userrole }} : {{ useraccount }}</span>
+      <span>{{ currentDateTime }}</span>
     </div>
   </div>
 </template>
@@ -58,12 +53,23 @@ export default {
   methods: {
     updateDateTime() {
       const now = new Date();
-      // 使用更简洁的时间格式
-      this.currentDateTime = now.toLocaleTimeString() + '   ' + now.toLocaleDateString();
+      const date = now.toLocaleDateString();
+      const time = now.toLocaleTimeString();
+      this.currentDateTime = `${date} ${time}`;
     },
     getuser(){
       this.userrole = localStorage.getItem("user_role");
       this.useraccount = localStorage.getItem("user_account");
+
+      if (this.userrole === 'viewer') {
+        this.userrole = '游客';
+      }
+      else if (this.userrole === 'fisher') {
+        this.userrole = '渔民';
+      }
+      else if (this.userrole === 'admin') {
+        this.userrole = '管理员';
+      }
     },
     fisher_register(){
       const accessToken = localStorage.getItem('accesstoken');
@@ -93,75 +99,52 @@ export default {
   top: 0;
   left: 0;
   right: 0;
-  background-color: #fff;
-  padding: 0.8rem 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   z-index: 1000;
-  gap: 1rem;
-  box-sizing: border-box;
 }
 
-.hello {
-  display: flex; /* 使用 Flex 布局 */
-  flex-direction: column; /* 垂直排列（列布局） */
-  align-items: center; /* 水平居中对齐 */
-}
-
-.head-links {
+.left-buttons {
   display: flex;
-  gap: 0.5rem;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  min-width: 0;
+  gap: 0.6rem;
+  margin-left: 20px;
 }
 
-.title-container {
-  text-align: center;
-  min-width: 0;
-}
-
-.headtext {
-  margin: 0;
-  font-size: clamp(1rem, 2vw, 1.2rem);
+.title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.2rem;
   font-weight: bold;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.right-info {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-right: 20px;
 }
 
 .nav-btn {
-  padding: 0.4rem 0.8rem;
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
-  background-color: #f0f0f0;
+  background: #f0f0f0;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: clamp(0.8rem, 1.5vw, 1rem);
   white-space: nowrap;
-  height: 50px;
-
 }
 
 .nav-btn:hover {
-  background-color: #e0e0e0;
+  background: #e0e0e0;
 }
 
 .nav-btn.active {
-  background-color: #1890ff;
+  background: #1890ff;
   color: white;
-}
-
-.date-time {
-  font-size: clamp(0.8rem, 1.5vw, 1rem);
-  color: #666;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
 }
 
 @media (max-width: 768px) {
