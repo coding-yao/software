@@ -20,6 +20,9 @@ __pycache__/
 # 前端程序的运行环境
 frontend/node_modules
 
+# 原始数据
+backend/data/water*/
+
 # Editor directories and files
 .vscode/*
 
