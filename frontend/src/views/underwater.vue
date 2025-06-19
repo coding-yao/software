@@ -67,9 +67,12 @@ export default {
       const chartDom = this.$refs.pieChart;
       const chart = echarts.init(chartDom);
       const option = {
-        title: { text: '不同物种数量分布', left: 'center' },
+        title: { text: '不同物种数量分布', subtext: '点击具体物种查看详情', left: 'center' },
         tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
         legend: { orient: 'vertical', left: 'left', data: this.speciesData.map(item => item.name) },
+        grid: {
+          left: '15%'
+        },
         series: [{
           name: '数量',
           type: 'pie',
@@ -268,14 +271,14 @@ export default {
         legend: {
           data: ['箱线图', '异常值'],
           left: 'center',
-          bottom: 10
+          bottom: 5
         },
         xAxis: {
           type: 'category',
           data: ['长度1(cm)', '长度2(cm)', '长度3(cm)', '高度(cm)', '宽度(cm)'],
           boundaryGap: true,
           axisLabel: {
-            rotate: 45
+            rotate: 0
           }
         },
         yAxis: {
@@ -366,6 +369,9 @@ export default {
           left: 'center',
           bottom: 10
         },
+        grid: {
+          right: '15%'
+        },
         xAxis: {
           type: 'value',
           name: '体长3 (cm)',
@@ -373,12 +379,17 @@ export default {
           max: Math.max(...detailData.scatterData.map(([x]) => x)) + 5,
           splitLine: {
             show: true
+          },
+          axisLabel: {
+            formatter: function(value) {
+              return value.toFixed(2); // 保留2位小数
+            }
           }
         },
         yAxis: {
           type: 'value',
           name: '重量 (g)',
-          min: Math.min(...detailData.scatterData.map(([, y]) => y)) - 100,
+          min: Math.max(Math.min(...detailData.scatterData.map(([, y]) => y)) - 100, 0),
           max: Math.max(...detailData.scatterData.map(([, y]) => y)) + 100,
           splitLine: {
             show: true
@@ -430,8 +441,8 @@ export default {
   display: flex;
   margin-top: 150px;
   background: white;
-  
-
+  margin-left: 20px;
+  margin-right: 20px;
 }
 
 .detail-charts {

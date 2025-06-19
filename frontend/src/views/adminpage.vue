@@ -147,7 +147,7 @@ export default {
             this.sidebarExpanded = false;
         },
         jumptofigures(){
-          this.$router.push("/underwater");// 导航到首页
+          this.$router.push("/main");// 导航到首页
         },
         get_user_list() {
             const accessToken = localStorage.getItem('accesstoken');
