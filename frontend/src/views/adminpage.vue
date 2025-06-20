@@ -35,6 +35,11 @@
                 <span class="nav-text" v-show="sidebarExpanded">设备信息</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" @click="jumpTo('model')">
+                <span class="nav-text" v-show="sidebarExpanded">模型管理</span>
+                </a>
+            </li>
             </ul>
         </nav>
         
@@ -92,6 +97,67 @@
                 </div>
             </div><!--end user-list-container-->
 
+            <!-- 模型管理区域 -->
+    <div class="model-management-container" v-if="currentPage === 'model'">
+        <h1 class="page-title">鱼类体长预测模型管理</h1>
+        
+        <div class="model-info">
+            <div class="info-card">
+                <h3>模型状态</h3>
+                <div v-if="modelStatus === 'loading'" class="loading-indicator">
+                    <span>加载中...</span>
+                </div>
+                <div v-else>
+                    <p v-if="modelStatus === 'ready'">
+                        <span class="status-badge success">已加载</span>
+                    </p>
+                    <p v-else-if="modelStatus === 'uninitialized'">
+                        <span class="status-badge warning">未初始化</span>
+                    </p>
+                    <p v-else>
+                        <span class="status-badge error">错误</span>
+                    </p>
+                    <p v-if="modelInfo.last_trained">
+                        最后训练时间: {{ formatDate(modelInfo.last_trained) }}
+                    </p>
+                    <p v-else>未训练过模型</p>
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h3>训练数据统计</h3>
+                <p>可用样本数: {{ modelInfo.sample_count || 0 }}</p>
+                <p>鱼种数量: {{ modelInfo.species_count || 0 }}</p>
+            </div>
+        </div>
+        
+        <div class="model-controls">
+                <button 
+                    class="train-button" 
+                    @click="trainModel" 
+                    :disabled="isTraining"
+                >
+                    <span v-if="!isTraining">训练模型</span>
+                    <span v-else>训练中...</span>
+                </button>
+                
+                <div v-if="trainingResult" class="result-card">
+                    <h3>训练结果</h3>
+                    <p v-if="trainingResult.message">{{ trainingResult.message }}</p>
+                    <p v-if="trainingResult.mae_full">
+                        完整模型平均绝对误差: {{ trainingResult.mae_full.toFixed(2) }} cm
+                    </p>
+                    <p v-if="trainingResult.mae_weight">
+                        仅体重模型平均绝对误差: {{ trainingResult.mae_weight.toFixed(2) }} cm
+                    </p>
+                </div>
+                
+                <div v-if="trainingError" class="error-card">
+                    <h3>训练失败</h3>
+                    <p>{{ trainingError }}</p>
+                </div>
+            </div>
+        </div>
 
             <!--修改用户信息时候的输入框-->
             <div  v-if="isModalOpen"  class="modal-overlay">
@@ -134,10 +200,18 @@ export default {
             sidebarExpanded: false,
             isModalOpen:false,
             choosed_user_id: 0,
+            currentPage: 'users', // 默认为用户管理页面
+            // 模型管理相关状态
+            modelStatus: 'loading', // loading, ready, uninitialized, error
+            modelInfo: {},
+            isTraining: false,
+            trainingResult: null,
+            trainingError: null
         };
     },
     mounted() {
         this.get_user_list(); //立即执行获取用户列表功能
+        this.fetchModelStatus(); // 获取模型状态
     },
     methods: {
         expandSidebar() {
@@ -242,6 +316,71 @@ export default {
             })
         },
 
+        jumpTo(page) {
+            this.currentPage = page;
+            
+            // 如果是模型管理页面，刷新模型状态
+            if (page === 'model') {
+                this.fetchModelStatus();
+            }
+        },
+
+        // 获取模型状态
+        async fetchModelStatus() {
+            this.modelStatus = 'loading';
+            try {
+                const accessToken = localStorage.getItem('accesstoken');
+                const response = await axios.get(
+                    'http://localhost:8000/api/AI/model-status/',
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                        }
+                    }
+                );
+                
+                this.modelInfo = response.data;
+                this.modelStatus = response.data.status || 'ready';
+            } catch (error) {
+                console.error('获取模型状态失败:', error);
+                this.modelStatus = 'error';
+                this.modelInfo = {};
+            }
+        },
+        
+        // 训练模型
+        async trainModel() {
+            this.isTraining = true;
+            this.trainingResult = null;
+            this.trainingError = null;
+            
+            try {
+                const accessToken = localStorage.getItem('accesstoken');
+                const response = await axios.post(
+                    'http://localhost:8000/api/AI/train-models/',
+                    {},
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                        }
+                    }
+                );
+                
+                this.trainingResult = response.data;
+                // 刷新模型状态
+                await this.fetchModelStatus();
+            } catch (error) {
+                console.error('训练模型失败:', error);
+                if (error.response) {
+                    this.trainingError = error.response.data.error || '训练失败';
+                } else {
+                    this.trainingError = error.message || '训练失败';
+                }
+            } finally {
+                this.isTraining = false;
+            }
+        },
+
 
     }  //end methods
 } // end export
@@ -249,6 +388,141 @@ export default {
 </script>
 
 <style scoped>
+/* 模型管理容器 */
+.model-management-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 模型信息卡片 */
+.model-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.info-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.info-card h3 {
+  margin-top: 0;
+  color: #2d3748;
+  border-bottom: 2px solid #f0f4f8;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+/* 状态徽章 */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-badge.success {
+  background-color: #c6f6d5;
+  color: #2f855a;
+}
+
+.status-badge.warning {
+  background-color: #feebc8;
+  color: #b7791f;
+}
+
+.status-badge.error {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+
+/* 模型控制区域 */
+.model-controls {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.train-button {
+  background-color: #3182ce;
+  color: white;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.train-button:hover:not(:disabled) {
+  background-color: #2b6cb0;
+}
+
+.train-button:disabled {
+  background-color: #cbd5e0;
+  cursor: not-allowed;
+}
+
+/* 结果卡片 */
+.result-card {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f0fff4;
+  border-radius: 6px;
+  border: 1px solid #c6f6d5;
+}
+
+.result-card h3 {
+  margin-top: 0;
+  color: #2f855a;
+}
+
+/* 错误卡片 */
+.error-card {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #fff5f5;
+  border-radius: 6px;
+  border: 1px solid #fed7d7;
+}
+
+.error-card h3 {
+  margin-top: 0;
+  color: #c53030;
+}
+
+/* 加载指示器 */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  color: #3182ce;
+}
+
+.loading-indicator::after {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 3px solid rgba(49, 130, 206, 0.3);
+  border-radius: 50%;
+  border-top-color: #3182ce;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+}
+
 /*表格样式*/
 .user-list-container {
   max-width: 1200px;

@@ -6,6 +6,15 @@ from openai import OpenAI
 from zhipuai import ZhipuAI
 import base64
 import requests
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .predictor import predictor
+from fish.models import Fish
+from django.utils import timezone
+from datetime import timedelta
+import os
+from django.conf import settings
 
 @csrf_exempt
 def deepseek_chat(request):
@@ -77,3 +86,183 @@ def recognize_image(request):
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+class TrainModelsView(APIView):
+    def post(self, request):
+        # 获取所有鱼类数据
+        fish_data = Fish.objects.filter(length3__isnull=False)
+        
+        if len(fish_data) < 10:  # 最少需要10条数据
+            return Response(
+                {"error": "训练数据不足，至少需要10个样本"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            mae_full, mae_weight = predictor.train_models(fish_data)
+            predictor.save_models()
+            
+            return Response({
+                "message": "模型训练成功",
+                "last_trained": timezone.now().isoformat(),
+                "mae_full": mae_full,
+                "mae_weight": mae_weight
+            })
+        except Exception as e:
+            return Response(
+                {"error": f"训练过程中出错: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class PredictLengthView(APIView):
+    def post(self, request):
+        # 确保预测器已初始化
+        if not predictor.is_initialized:
+            try:
+                # 尝试加载模型
+                predictor.load_models()
+            except FileNotFoundError:
+                # 如果模型不存在，尝试训练
+                fish_data = Fish.objects.filter(length3__isnull=False)
+                if len(fish_data) >= 10:
+                    predictor.train_models(fish_data)
+                    predictor.save_models()
+                else:
+                    return Response(
+                        {"error": "预测模型未初始化且数据不足无法训练"},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE
+                    )
+        
+        data = request.data
+        
+        # 验证必要参数
+        if 'species' not in data or 'weight' not in data:
+            return Response(
+                {"error": "必须提供鱼种和体重"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 获取参数
+        try:
+            species = data['species']
+            weight = float(data['weight'])
+            height = float(data['height']) if 'height' in data and data['height'] else None
+            width = float(data['width']) if 'width' in data and data['width'] else None
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "参数格式不正确"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 预测体长
+        prediction, model_type = predictor.predict_length(species, weight, height, width)
+        
+        if prediction is None:
+            return Response(
+                {"error": f"预测失败: {model_type}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # 获取历史数据对比
+        weight_range = (max(1, weight * 0.8), weight * 1.2)  # 确保最小值不小于1
+        similar_fish = Fish.objects.filter(
+            species=species,
+            weight__range=weight_range,
+            length3__isnull=False
+        ).order_by('weight')[:100]  # 限制最多100条
+        
+        # 计算历史统计信息
+        if similar_fish.exists():
+            lengths = [fish.length3 for fish in similar_fish]
+            hist_min = min(lengths)
+            hist_max = max(lengths)
+            hist_avg = sum(lengths) / len(lengths)
+            hist_count = len(lengths)
+        else:
+            hist_min = hist_max = hist_avg = None
+            hist_count = 0
+        
+        return Response({
+            "predicted_length3": round(prediction, 2),
+            "model_used": model_type,
+            "historical_comparison": {
+                "min_length": hist_min,
+                "max_length": hist_max,
+                "avg_length": round(hist_avg, 2) if hist_avg else None,
+                "sample_count": hist_count,
+                "similar_fish": [
+                    {"id": fish.id, "weight": fish.weight, "length3": fish.length3} 
+                    for fish in similar_fish[:10]  # 限制返回数量
+                ]
+            }
+        })
+
+class SpeciesListView(APIView):
+    def get(self, request):
+        # 获取所有鱼种
+        species = Fish.objects.values_list('species', flat=True).distinct()
+        return Response({"species": list(species)})
+
+class ModelStatusView(APIView):
+    def get(self, request):
+        # 检查模型是否初始化
+        if not predictor.is_initialized:
+            try:
+                predictor.load_models()
+            except:
+                pass
+        
+        # 获取模型信息
+        status = "ready" if predictor.is_initialized else "uninitialized"
+        
+        # 获取训练数据统计
+        fish_data = Fish.objects.filter(length3__isnull=False)
+        
+        species_count = fish_data.values('species').distinct().count()
+        sample_count = fish_data.count()
+        
+        return Response({
+            "status": status,
+            "last_trained": predictor.last_trained.isoformat() if predictor.last_trained else None,
+            "species_count": species_count,
+            "sample_count": sample_count
+        })
+    
+class LoadLocalModelView(APIView):
+    def post(self, request):
+        try:
+            # 指定本地模型路径
+            model_path = os.path.join(settings.BASE_DIR, 'fish_models.joblib')
+            
+            # 确保文件存在
+            if not os.path.exists(model_path):
+                return Response({
+                    "success": False,
+                    "error": f"模型文件不存在: {model_path}",
+                    "path": model_path
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # 加载模型
+            predictor.load_models(path=model_path)
+            
+            # 获取模型信息
+            fish_data = Fish.objects.filter(length3__isnull=False)
+            species_count = fish_data.values('species').distinct().count()
+            sample_count = fish_data.count()
+            
+            return Response({
+                "success": True,
+                "message": "本地模型加载成功",
+                "is_initialized": predictor.is_initialized,
+                "last_trained": predictor.last_trained.isoformat() if predictor.last_trained else None,
+                "species_count": species_count,
+                "sample_count": sample_count,
+                "model_path": model_path
+            })
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": f"加载本地模型失败: {str(e)}",
+                "details": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
