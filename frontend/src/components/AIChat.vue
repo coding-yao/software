@@ -6,14 +6,14 @@
            :class="['message', msg.role]">
         <div class="message-header">
           <span v-if="msg.role === 'user'">👤 你</span>
-          <span v-else>🤖 AI助手</span>
+          <span v-else>🤖 AI养殖助手</span>
         </div>
         <div class="message-content">
           {{ msg.content }}
         </div>
       </div>
       <div v-if="isLoading" class="message assistant">
-        <div class="message-header">🤖 AI助手</div>
+        <div class="message-header">🤖 AI养殖助手</div>
         <div class="message-content loading">
           <div class="dot-flashing"></div>
         </div>
