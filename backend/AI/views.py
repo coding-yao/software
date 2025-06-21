@@ -15,6 +15,14 @@ from django.utils import timezone
 from datetime import timedelta
 import os
 from django.conf import settings
+# from rest_framework.permissions import IsAdminUser
+from .models import APIKey
+
+def get_api_key(service):
+    try:
+        return APIKey.objects.get(service=service).key
+    except APIKey.DoesNotExist:
+        return None
 
 @csrf_exempt
 def deepseek_chat(request):
@@ -23,10 +31,11 @@ def deepseek_chat(request):
             data = json.loads(request.body)
             messages = data.get('messages', [])
             
-            client = OpenAI(
-                api_key="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",  # 替换 deepseek API密钥
-                base_url="https://api.deepseek.com"
-            )
+            api_key = get_api_key('DEEPSEEK')
+            if not api_key:
+                return JsonResponse({'error': 'DeepSeek API key not configured'}, status=500)
+            
+            client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
             
             response = client.chat.completions.create(
                 model="deepseek-chat",
@@ -49,6 +58,10 @@ def recognize_image(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     
+    api_key = get_api_key('GLM')
+    if not api_key:
+        return JsonResponse({'error': 'GLM API key not configured'}, status=500)
+    
     # 获取上传的图片
     image_file = request.FILES.get('image')
     if not image_file:
@@ -61,7 +74,7 @@ def recognize_image(request):
         image_url = f"data:image/{image_file.name.split('.')[-1]};base64,{base64_image}"
         
         # 调用GLM API
-        client = ZhipuAI(api_key="xxxxxxxxxxxxxxxxxxx")  # 替换 GLM API密钥
+        client = ZhipuAI(api_key=api_key)
         
         response = client.chat.completions.create(
             model="GLM-4V-Flash",
@@ -284,3 +297,29 @@ class LoadLocalModelView(APIView):
                 "error": f"加载本地模型失败: {str(e)}",
                 "details": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class APIKeyView(APIView):
+    # permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        keys = APIKey.objects.all()
+        result = {key.service: key.key for key in keys}
+        return Response(result)
+    
+    def post(self, request):
+        service = request.data.get('service')
+        key_value = request.data.get('key')
+        
+        if not service or not key_value:
+            return Response({'error': 'Missing service or key'}, status=400)
+            
+        api_key, created = APIKey.objects.update_or_create(
+            service=service,
+            defaults={'key': key_value}
+        )
+        
+        return Response({
+            'status': 'created' if created else 'updated',
+            'service': api_key.service,
+            'last_updated': api_key.last_updated
+        })

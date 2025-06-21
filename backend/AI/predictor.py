@@ -45,10 +45,10 @@ class FishGrowthPredictor:
         if not self.is_initialized:
             try:
                 self.load_models()
-                print("✅ 模型加载成功")
+                # print("✅ 模型加载成功")
                 self.is_initialized = True
             except FileNotFoundError:
-                print("⚠️ 未找到已训练模型")
+                # print("⚠️ 未找到已训练模型")
                 self.is_initialized = False
         
     def train_models(self, fish_data):

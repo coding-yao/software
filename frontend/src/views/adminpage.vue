@@ -40,6 +40,11 @@
                 <span class="nav-text" v-show="sidebarExpanded">模型管理</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" @click="jumpToApiKeys">
+                <span class="nav-text" v-show="sidebarExpanded">API密钥管理</span>
+                </a>
+            </li>
             </ul>
         </nav>
         
@@ -96,6 +101,31 @@
                     </table>
                 </div>
             </div><!--end user-list-container-->
+
+            <!--修改用户信息时候的输入框-->
+            <div  v-if="isModalOpen"  class="modal-overlay">
+                <div class="modal-content">
+                    <!-- 输入框1 -->
+                    <div class="input-group">
+                        <input type="text" placeholder="输入新账户名称" ref="newaccount">
+                    </div>
+                    <!-- 输入框2 -->
+                    <div class="input-group">
+                        <input type="text" placeholder="输入新密码" ref="newpassword">
+                    </div>
+                    <!-- 选择框 -->
+                    <div class="input-group">
+                        <select ref="new_role">
+                        <option value="">选择用户身份</option>
+                        <option value="viewer">游客</option>
+                        <option value="fisher">渔民</option>
+                        <option value="admin">管理员</option>
+                        </select>
+                    </div>
+                    <button @click="notdisplay()">取消</button>
+                    <button @click="update()">提交</button>
+                </div>
+            </div>
 
             <!-- 模型管理区域 -->
     <div class="model-management-container" v-if="currentPage === 'model'">
@@ -159,29 +189,40 @@
             </div>
         </div>
 
-            <!--修改用户信息时候的输入框-->
-            <div  v-if="isModalOpen"  class="modal-overlay">
-                <div class="modal-content">
-                    <!-- 输入框1 -->
-                    <div class="input-group">
-                        <input type="text" placeholder="输入新账户名称" ref="newaccount">
-                    </div>
-                    <!-- 输入框2 -->
-                    <div class="input-group">
-                        <input type="text" placeholder="输入新密码" ref="newpassword">
-                    </div>
-                    <!-- 选择框 -->
-                    <div class="input-group">
-                        <select ref="new_role">
-                        <option value="">选择用户身份</option>
-                        <option value="viewer">游客</option>
-                        <option value="fisher">渔民</option>
-                        <option value="admin">管理员</option>
+    <!-- API密钥管理页面 -->
+            <div v-if="currentPage === 'api-keys'" class="api-keys-container">
+                <h1 class="page-title">API密钥管理</h1>
+                
+                <div class="key-form">
+                    <div class="form-group">
+                        <label>选择服务:</label>
+                        <select v-model="currentService">
+                            <option value="DEEPSEEK">DeepSeek</option>
+                            <option value="GLM">GLM-4V</option>
                         </select>
                     </div>
-                    <button @click="notdisplay()">取消</button>
-                    <button @click="update()">提交</button>
+                    
+                    <div class="form-group">
+                        <label>API密钥:</label>
+                        <input 
+                            type="password" 
+                            v-model="currentKey" 
+                            placeholder="输入API密钥"
+                            @input="clearMessages"
+                        >
+                    </div>
+                    
+                    <button 
+                        class="save-button" 
+                        @click="saveKey"
+                        :disabled="isSaving"
+                    >
+                        <span v-if="!isSaving">保存密钥</span>
+                        <span v-else>保存中...</span>
+                    </button>
                 </div>
+                
+                <div v-if="message" class="message" :class="messageClass">{{ message }}</div>
             </div>
 
 
@@ -206,7 +247,13 @@ export default {
             modelInfo: {},
             isTraining: false,
             trainingResult: null,
-            trainingError: null
+            trainingError: null,
+            // API密钥管理相关数据
+            currentService: 'DEEPSEEK',
+            currentKey: '',
+            isSaving: false,
+            message: '',
+            messageClass: ''
         };
     },
     mounted() {
@@ -222,6 +269,100 @@ export default {
         },
         jumptofigures(){
           this.$router.push("/underwater");// 导航到首页
+        },
+        jumpToApiKeys() {
+            this.currentPage = 'api-keys';
+            this.fetchApiKeys();
+        },
+        // 获取API密钥
+        async fetchApiKeys() {
+            try {
+                const accessToken = localStorage.getItem('accesstoken');
+                const response = await axios.get(
+                    'http://localhost:8000/api/keys/',
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                        }
+                    }
+                );
+                
+                // 设置当前密钥
+                if (response.data.DEEPSEEK) {
+                    this.deepseekKey = response.data.DEEPSEEK;
+                    if (this.currentService === 'DEEPSEEK') {
+                        this.currentKey = this.deepseekKey;
+                    }
+                }
+                if (response.data.GLM) {
+                    this.glmKey = response.data.GLM;
+                    if (this.currentService === 'GLM') {
+                        this.currentKey = this.glmKey;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('获取API密钥失败:', error);
+                this.showMessage('获取API密钥失败: ' + (error.response?.data?.error || error.message), 'error');
+            }
+        },
+        
+        // 保存API密钥
+        async saveKey() {
+            if (!this.currentKey) {
+                this.showMessage('请输入API密钥', 'error');
+                return;
+            }
+            
+            this.isSaving = true;
+            this.message = '';
+            
+            try {
+                const accessToken = localStorage.getItem('accesstoken');
+                const response = await axios.post(
+                    'http://localhost:8000/api/AI/keys/',
+                    {
+                        service: this.currentService,
+                        key: this.currentKey
+                    },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                        }
+                    }
+                );
+                
+                this.showMessage(`密钥已${response.data.status === 'created' ? '创建' : '更新'}！`, 'success');
+                
+                // 更新本地存储的密钥
+                if (this.currentService === 'DEEPSEEK') {
+                    this.deepseekKey = this.currentKey;
+                } else {
+                    this.glmKey = this.currentKey;
+                }
+                
+            } catch (error) {
+                console.error('保存API密钥失败:', error);
+                this.showMessage('保存失败: ' + (error.response?.data?.error || error.message), 'error');
+            } finally {
+                this.isSaving = false;
+            }
+        },
+        
+        // 显示消息
+        showMessage(text, type) {
+            this.message = text;
+            this.messageClass = type;
+            
+            // 5秒后自动清除消息
+            setTimeout(() => {
+                this.message = '';
+            }, 5000);
+        },
+        
+        // 清除消息
+        clearMessages() {
+            this.message = '';
         },
         get_user_list() {
             const accessToken = localStorage.getItem('accesstoken');
@@ -388,6 +529,118 @@ export default {
 </script>
 
 <style scoped>
+/* API密钥管理容器样式 */
+.api-keys-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.key-form {
+  background-color: #f8f9fa;
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid #eaeaea;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-group select, 
+.form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.form-group select:focus, 
+.form-group input:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.save-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 25px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.save-button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.message {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 6px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.message.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* 调整侧边栏导航项样式 */
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  background-color: #334155;
+  color: white;
+}
+
 /* 模型管理容器 */
 .model-management-container {
   max-width: 1200px;

@@ -7,5 +7,5 @@ class AiConfig(AppConfig):
     def ready(self):
         # 仅标记预测器，不立即初始化
         # 实际初始化将在第一次请求时进行
-        print("✅ 鱼类预测器已准备")
+        # print("✅ 鱼类预测器已准备")
         predictor.initialize()
