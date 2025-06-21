@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/weather/', include('weather.urls')),
     path('api/environment/', include('environment.urls')),
     path('api/device/', include('device.urls')),
+    path('api/AI/', include('AI.urls')),
 ]

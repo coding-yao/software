@@ -51,6 +51,8 @@ INSTALLED_APPS = [
 
     'environment',
     'device',
+
+    'AI',
     
     # 基础组件app
     'rest_framework',
