@@ -52,7 +52,7 @@ export default {
       ],
       userInput: '',
       isLoading: false,
-      apiUrl: 'http://localhost:8000/api/AI/deepseek/' // 替换为你的Django后端地址
+      apiUrl: 'http://localhost:8000/api/AI/deepseek/'
     };
   },
   methods: {

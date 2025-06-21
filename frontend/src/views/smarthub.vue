@@ -41,7 +41,7 @@ import NavBar from '@/components/NavBar.vue'
 import WeatherWidget from '@/components/WeatherWidget.vue';
 import AIChat from '@/components/AIChat.vue';
 import ImageRecognition from '@/components/ImageRecognition.vue';
-import FishPredictor from '@/components/FishPredictor.vue'; // 导入鱼类预测组件
+import FishPredictor from '@/components/FishPredictor.vue';
 
 export default {
     components: {
@@ -49,7 +49,7 @@ export default {
         WeatherWidget,
         AIChat,
         ImageRecognition,
-        FishPredictor // 注册新组件
+        FishPredictor
     },
     data() {
         return {

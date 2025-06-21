@@ -24,7 +24,7 @@ def deepseek_chat(request):
             messages = data.get('messages', [])
             
             client = OpenAI(
-                api_key="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",  # Replace with your actual API key
+                api_key="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",  # 替换 deepseek API密钥
                 base_url="https://api.deepseek.com"
             )
             
@@ -91,25 +91,45 @@ def recognize_image(request):
 class TrainModelsView(APIView):
     def post(self, request):
         # 获取所有鱼类数据
-        fish_data = Fish.objects.filter(length3__isnull=False)
+        fish_data = Fish.objects.filter(
+            length1__isnull=False, 
+            length2__isnull=False, 
+            length3__isnull=False
+        )
         
-        if len(fish_data) < 10:  # 最少需要10条数据
-            return Response(
-                {"error": "训练数据不足，至少需要10个样本"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # 验证数据完整性
+        if len(fish_data) < 10:
+            missing_data = Fish.objects.filter(
+                Q(length1__isnull=True) | 
+                Q(length2__isnull=True) | 
+                Q(length3__isnull=True)
+            ).count()
+            
+            return Response({
+                "error": f"训练数据不足，需要至少10个完整样本（包含所有生长阶段数据）",
+                "available_samples": len(fish_data),
+                "missing_data_samples": missing_data,
+                "required_samples": 10
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            mae_full, mae_weight = predictor.train_models(fish_data)
+            # 调用训练方法，返回一个结果字典
+            result = predictor.train_models(fish_data)
+            
+            # 保存模型
             predictor.save_models()
             
             return Response({
-                "message": "模型训练成功",
+                "message": result.get("message", "模型训练成功"),
                 "last_trained": timezone.now().isoformat(),
-                "mae_full": mae_full,
-                "mae_weight": mae_weight
+                "mae_full": result.get("mae_full", 0),
+                "mae_stage3": result.get("mae_stage3", 0),
+                "species_count": result.get("species_count", 0),
+                "sample_count": result.get("sample_count", 0)
             })
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response(
                 {"error": f"训练过程中出错: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -117,50 +137,38 @@ class TrainModelsView(APIView):
 
 class PredictLengthView(APIView):
     def post(self, request):
-        # 确保预测器已初始化
-        if not predictor.is_initialized:
-            try:
-                # 尝试加载模型
-                predictor.load_models()
-            except FileNotFoundError:
-                # 如果模型不存在，尝试训练
-                fish_data = Fish.objects.filter(length3__isnull=False)
-                if len(fish_data) >= 10:
-                    predictor.train_models(fish_data)
-                    predictor.save_models()
-                else:
-                    return Response(
-                        {"error": "预测模型未初始化且数据不足无法训练"},
-                        status=status.HTTP_503_SERVICE_UNAVAILABLE
-                    )
-        
         data = request.data
         
         # 验证必要参数
         if 'species' not in data or 'weight' not in data:
             return Response(
-                {"error": "必须提供鱼种和体重"},
+                {"error": "Species and weight are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # 获取参数
         try:
+            # 确保数值参数转换为float
             species = data['species']
             weight = float(data['weight'])
             height = float(data['height']) if 'height' in data and data['height'] else None
             width = float(data['width']) if 'width' in data and data['width'] else None
-        except (TypeError, ValueError):
+            length1 = float(data['length1']) if 'length1' in data and data['length1'] else None
+            length2 = float(data['length2']) if 'length2' in data and data['length2'] else None
+            
+            # 预测体长
+            prediction = predictor.predict_length3(
+                species, weight, height, width, length1, length2
+            )
+        except ValueError as ve:
             return Response(
-                {"error": "参数格式不正确"},
+                {"error": f"Invalid parameter value: {str(ve)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # 预测体长
-        prediction, model_type = predictor.predict_length(species, weight, height, width)
-        
-        if prediction is None:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response(
-                {"error": f"预测失败: {model_type}"},
+                {"error": f"Prediction failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
@@ -184,8 +192,9 @@ class PredictLengthView(APIView):
             hist_count = 0
         
         return Response({
-            "predicted_length3": round(prediction, 2),
-            "model_used": model_type,
+            "predicted_length3": round(prediction['predicted_length3'], 2),
+            "model_used": prediction['model_type'],
+            "growth_rate_prediction": round(prediction['growth_rate_prediction'], 2) if prediction['growth_rate_prediction'] else None,
             "historical_comparison": {
                 "min_length": hist_min,
                 "max_length": hist_max,
@@ -217,16 +226,25 @@ class ModelStatusView(APIView):
         status = "ready" if predictor.is_initialized else "uninitialized"
         
         # 获取训练数据统计
-        fish_data = Fish.objects.filter(length3__isnull=False)
-        
-        species_count = fish_data.values('species').distinct().count()
-        sample_count = fish_data.count()
+        try:
+            fish_data = Fish.objects.filter(
+                length1__isnull=False, 
+                length2__isnull=False, 
+                length3__isnull=False
+            )
+            species_count = fish_data.values('species').distinct().count()
+            sample_count = fish_data.count()
+        except:
+            species_count = 0
+            sample_count = 0
         
         return Response({
             "status": status,
+            "is_initialized": predictor.is_initialized,
             "last_trained": predictor.last_trained.isoformat() if predictor.last_trained else None,
             "species_count": species_count,
-            "sample_count": sample_count
+            "sample_count": sample_count,
+            "model_type": "多阶段生长模型"
         })
     
 class LoadLocalModelView(APIView):

@@ -6,24 +6,6 @@
       <p>模型加载中，请稍候...</p>
     </div>
     
-    <div v-if="modelStatus === 'error'" class="status-message error">
-      <h3>模型加载失败</h3>
-      <p>{{ modelError }}</p>
-      <div class="debug-info">
-        <p>路径: {{ debugInfo.path }}</p>
-        <p>错误: {{ debugInfo.error }}</p>
-      </div>
-      <button @click="loadLocalModel" class="action-button">加载本地模型</button>
-      <button @click="initializeModel" class="action-button">重新训练模型</button>
-    </div>
-    
-    <div v-if="modelStatus === 'uninitialized'" class="status-message warning">
-      <h3>预测功能未初始化</h3>
-      <p>请加载本地模型或重新训练</p>
-      <button @click="loadLocalModel" class="action-button">加载本地模型</button>
-      <button @click="initializeModel" class="action-button">重新训练模型</button>
-    </div>
-    
     <div v-if="modelStatus === 'ready'">
       <div class="model-info-card">
         <div class="status-indicator ready"></div>
@@ -32,9 +14,7 @@
           <p v-if="modelInfo.last_trained">
             最后训练时间: {{ formatDate(modelInfo.last_trained) }}
           </p>
-          <p>可用样本数: {{ modelInfo.sample_count || '无数据' }}</p>
-          <p>支持鱼种数: {{ modelInfo.species_count || '无数据' }}</p>
-          <p>模型来源: {{ modelInfo.source || '本地模型' }}</p>
+          <p>支持生长阶段预测</p>
         </div>
       </div>
       
@@ -67,9 +47,27 @@
             </div>
           </div>
           
+          <!-- 添加生长阶段数据输入 -->
+          <div class="growth-stage-section">
+            <h4>生长阶段数据（可选）</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>阶段1体长 (cm)</label>
+                <input type="number" v-model.number="form.length1" min="0.1" step="0.1">
+                <span class="hint">length1</span>
+              </div>
+              
+              <div class="form-group">
+                <label>阶段2体长 (cm)</label>
+                <input type="number" v-model.number="form.length2" min="0.1" step="0.1">
+                <span class="hint">length2</span>
+              </div>
+            </div>
+          </div>
+          
           <div class="form-group">
             <button type="button" @click="predict" :disabled="loading">
-              <span v-if="!loading">预测体长</span>
+              <span v-if="!loading">预测最终体长</span>
               <span v-else>计算中...</span>
             </button>
           </div>
@@ -91,8 +89,18 @@
                 {{ getModelName(result.model_used) }}
               </div>
               <div class="confidence">
-                预测体长
+                最终体长预测
               </div>
+            </div>
+          </div>
+          
+          <!-- 生长速率预测 -->
+          <div v-if="result.growth_rate_prediction" class="growth-prediction">
+            <div class="growth-prediction-value">
+              基于生长速率预测: {{ result.growth_rate_prediction }} cm
+            </div>
+            <div class="growth-explanation">
+              （根据该鱼种历史生长速率估算）
             </div>
           </div>
           
@@ -246,18 +254,33 @@ export default {
       this.result = null;
       
       try {
-        const payload = { ...this.form };
-        if (payload.height === null) delete payload.height;
-        if (payload.width === null) delete payload.width;
+        const payload = { 
+          species: this.form.species,
+          weight: this.form.weight,
+          height: this.form.height,
+          width: this.form.width,
+          length1: this.form.length1,
+          length2: this.form.length2
+        };
+        // 移除空值
+        Object.keys(payload).forEach(key => {
+          if (payload[key] === null || payload[key] === '') {
+            delete payload[key];
+          }
+        });
         
         const response = await axios.post('http://localhost:8000/api/AI/predict-length/', payload);
         this.result = response.data;
       } catch (error) {
         let errorMsg = '预测失败，请稍后重试';
         
-        if (error.response) {
+         if (error.response) {
           if (error.response.data?.error) {
             errorMsg = error.response.data.error;
+          } else if (error.response.status === 400) {
+            errorMsg = '请求参数不正确';
+          } else if (error.response.status === 500) {
+            errorMsg = '服务器内部错误';
           }
         } else if (error.message) {
           errorMsg = error.message;
@@ -272,11 +295,13 @@ export default {
     
     getModelName(modelType) {
       const modelNames = {
-        full: '使用完整特征',
-        weight_height: '使用体重和高度',
-        weight_only: '仅使用体重'
+        "full_growth": "三阶段生长模型",
+        "two_stage": "两阶段生长模型",
+        "full": "完整特征模型",
+        "weight_height": "体重+高度模型",
+        "weight_only": "仅体重模型"
       };
-      return modelNames[modelType] || '';
+      return modelNames[modelType] || modelType;
     },
     
     formatDate(dateString) {
