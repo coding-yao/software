@@ -46,6 +46,12 @@ Django 会在 `projectdatabase` 数据库里生成相关的表，表名为 `appn
     pip install djangorestframework
     pip install djangorestframework-simplejwt
     pip install mysqlclient
+    pip install requests
+    pip install scikit-learn
+    pip install pandas
+    pip install joblib
+    pip install openai
+    pip install zhipuai
     ```
 
 3. 执行数据库迁移

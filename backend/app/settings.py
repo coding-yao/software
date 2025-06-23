@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 import os
 from configparser import ConfigParser
 from pathlib import Path
@@ -88,6 +89,14 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
+}
+
+# JWT 配置
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=6),     # 访问令牌有效期
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),    # 刷新令牌有效期
+    'ROTATE_REFRESH_TOKENS': True,                   # 刷新时是否返回新的刷新令牌
+    'BLACKLIST_AFTER_ROTATION': True,                # 刷新后原刷新令牌是否加入黑名单
 }
 
 

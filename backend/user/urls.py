@@ -13,5 +13,5 @@ urlpatterns = [
 
     path('register_fisher/', views.register_fisher, name='register_fisher'),
     path('fisher_list/', views.get_fisher_list, name='get_fisher_list'),
-
+    path('update_thresholds/', views.update_thresholds, name='update_thresholds')
 ]

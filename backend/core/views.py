@@ -1,159 +1,167 @@
 import csv
-import datetime
-from django.http import HttpResponse
-from django.db import transaction
+from datetime import date, timedelta
+from django.db.models import Avg, StdDev
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 
-from .permissions import IsAdminUser, IsFisher
+from .permissions import IsFisher
 from fish.models import Fish
 from user.models import Fisher
 
-# 上传数据
-@api_view(['POST'])
-@permission_classes([IsFisher])
-def upload_fish_csv(request):    
-    # 获取并验证 fisher_id
-    try:
-        fisher_id = int(request.data.get("fisher_id"))
-    except (ValueError, TypeError):
-        return Response({'error': 'fisher_id 必须是有效的整数'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    if not fisher_id:
-        return Response({'error': '缺少 fisher_id 参数'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # 获取并验证csv数据文件
-    if 'file' not in request.FILES:
-        return Response({'error': '未上传文件'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    csv_file = request.FILES['file']
-    if not csv_file.name.endswith('.csv'):
-        return Response({'error': '请上传 CSV 文件'}, status=status.HTTP_400_BAD_REQUEST)
 
+# 预警模块
+@api_view(['GET'])
+@permission_classes([IsFisher])
+def check_alert(request):
     try:
-        decoded_file = csv_file.read().decode('utf-8').splitlines()
-        reader = csv.DictReader(decoded_file)
+        # 获取当前用户的fisher对象
+        fisher = request.user.fisher
         
-        # 验证表头
-        required_fields = {'species', 'weight', 'length1'}
-        if not required_fields.issubset(reader.fieldnames):
-            missing = required_fields - set(reader.fieldnames)
-            return Response({'error': f'缺少必要字段: {", ".join(missing)}'}, status=400)
+        alerts = []
         
-        fish_instances = []
-        errors = []
+        # 获取目标渔民的鱼群
+        fish_qs = Fish.objects.filter(fisher=fisher)
         
-        with transaction.atomic():
-            for i, row in enumerate(reader, start=2):  # 从第2行开始
-                try:                    
-                    # 创建鱼对象
-                    fish = Fish(
-                        fisher_id=fisher_id,
-                        species=row['species'],
-                        weight=float(row['weight']),
-                        length1=float(row['length1']),
-                        length2=float(row.get('length2', 0)),
-                        length3=float(row.get('length3', 0)),
-                        height=float(row.get('height', 0)),
-                        width=float(row.get('width', 0)),
-                        is_alive=row.get('is_alive', 'True').lower() == 'true',
+        # 按鱼种缓存统计数据
+        species_stats_cache = {}
+        
+        # 检查单条鱼异常
+        for fish in fish_qs:
+            thresholds = {
+                'weight_deviation_multiplier': fisher.weight_deviation_multiplier,
+                'length_min': fisher.length_min,
+                'length_max': fisher.length_max,
+                'aspect_ratio_min': fisher.aspect_ratio_min,
+                'aspect_ratio_max': fisher.aspect_ratio_max,
+                'height_width_ratio_min': fisher.height_width_ratio_min,
+                'height_width_ratio_max': fisher.height_width_ratio_max,
+            }
+            
+            # 获取或计算该鱼种的统计数据
+            cache_key = f"{fisher.id}_{fish.species}"
+            if cache_key not in species_stats_cache:
+                # 过滤相同渔民和鱼种的鱼
+                species_fish = Fish.objects.filter(
+                    fisher=fisher,
+                    species=fish.species
+                )
+                
+                if not species_fish.exists():
+                    continue  # 如果没有同种类的鱼，跳过检查
+                
+                stats = species_fish.aggregate(avg_weight=Avg('weight'), std_weight=StdDev('weight'))
+                
+                # 避免标准差为零
+                stats['std_weight'] = stats['std_weight'] or 0.1
+                species_stats_cache[cache_key] = stats
+            
+            species_stats = species_stats_cache.get(cache_key)
+            if not species_stats:
+                continue  # 统计数据不存在，跳过检查
+            
+            # 检查重量异常
+            weight_deviation = abs(fish.weight - species_stats['avg_weight']) / species_stats['std_weight']
+            if weight_deviation > thresholds['weight_deviation_multiplier']:
+                severity = 'high' if weight_deviation > 5.0 else 'medium'
+                alerts.append({
+                    'fish_id': fish.id,
+                    'alert_type': 'weight',
+                    'severity': severity,
+                    'message': (
+                        f"鱼ID#{fish.id}重量异常：{fish.weight}kg，"
+                        f"比同鱼种平均重量{species_stats['avg_weight']:.2f}kg偏差{weight_deviation:.2f}个标准差"
                     )
-                    
-                    # 可选字段处理
-                    if row.get('died_at'):
-                        fish.died_at = datetime.datetime.fromisoformat(row['died_at'])
-                    
-                    fish_instances.append(fish)
-                except Fisher.DoesNotExist:
-                    errors.append(f'第 {i} 行：渔民账号 {row["fisher_account"]} 不存在')
-                except Exception as e:
-                    errors.append(f'第 {i} 行：{str(e)}')
+                })
+            
+            # 检查长度异常
+            if fish.length1 < thresholds['length_min']:
+                alerts.append({
+                    'fish_id': fish.id,
+                    'alert_type': 'length',
+                    'severity': 'medium',
+                    'message': f"鱼ID#{fish.id}长度异常：{fish.length1}cm，低于最小阈值{thresholds['length_min']}cm"
+                })
+            
+            if fish.length1 > thresholds['length_max']:
+                alerts.append({
+                    'fish_id': fish.id,
+                    'alert_type': 'length',
+                    'severity': 'high',
+                    'message': f"鱼ID#{fish.id}长度异常：{fish.length1}cm，超过最大阈值{thresholds['length_max']}cm"
+                })
+            
+            # 检查体型比例异常
+            if fish.width > 0:
+                aspect_ratio = fish.length1 / fish.width
+                height_width_ratio = fish.height / fish.width
+                
+                if aspect_ratio < thresholds['aspect_ratio_min']:
+                    alerts.append({
+                        'fish_id': fish.id,
+                        'alert_type': 'size_ratio',
+                        'severity': 'medium',
+                        'message': f"鱼ID#{fish.id}体型异常：长宽比{aspect_ratio:.2f}，低于最小阈值{thresholds['aspect_ratio_min']}"
+                    })
+                
+                if aspect_ratio > thresholds['aspect_ratio_max']:
+                    alerts.append({
+                        'fish_id': fish.id,
+                        'alert_type': 'size_ratio',
+                        'severity': 'medium',
+                        'message': f"鱼ID#{fish.id}体型异常：长宽比{aspect_ratio:.2f}，超过最大阈值{thresholds['aspect_ratio_max']}"
+                    })
+                
+                if height_width_ratio < thresholds['height_width_ratio_min']:
+                    alerts.append({
+                        'fish_id': fish.id,
+                        'alert_type': 'size_ratio',
+                        'severity': 'medium',
+                        'message': f"鱼ID#{fish.id}体型异常：高宽比{height_width_ratio:.2f}，低于最小阈值{thresholds['height_width_ratio_min']}"
+                    })
+                
+                if height_width_ratio > thresholds['height_width_ratio_max']:
+                    alerts.append({
+                        'fish_id': fish.id,
+                        'alert_type': 'size_ratio',
+                        'severity': 'medium',
+                        'message': f"鱼ID#{fish.id}体型异常：高宽比{height_width_ratio:.2f}，超过最大阈值{thresholds['height_width_ratio_max']}"
+                    })
         
-        if errors:
-            return Response({'errors': errors}, status=400)
+        # 检查死亡率异常
+        today = date.today()
+        yesterday = today - timedelta(days=1)
         
-        Fish.objects.bulk_create(fish_instances)
-        return Response({'message': f'成功导入 {len(fish_instances)} 条记录'}, status=201)
+        # 统计昨天的死亡鱼数量
+        dead_fish_count = Fish.objects.filter(
+            fisher=fisher,
+            is_alive=False,
+            died_at__date=yesterday
+        ).count()
+        
+        # 统计存活鱼数量
+        alive_fish_count = fish_qs.filter(is_alive=True).count()
+        
+        # 计算活跃鱼群的死亡率（仅计算昨天存活的鱼）
+        if alive_fish_count > 0:
+            mortality_rate = dead_fish_count / alive_fish_count
+            
+            if mortality_rate > fisher.daily_mortality_rate_threshold:
+                severity = 'high' if mortality_rate > 0.05 else 'medium'
+                alerts.append({
+                    'fish_id': None,  # 群体预警
+                    'alert_type': 'mortality',
+                    'severity': severity,
+                    'message': (
+                        f"昨日死亡率异常：{mortality_rate:.2%}，"
+                        f"超过阈值{100*fisher.daily_mortality_rate_threshold:.2f}%，"
+                        f"死亡数量：{dead_fish_count}，存活数量：{alive_fish_count}"
+                    )
+                })
+        
+        return Response(alerts)
     
-    except UnicodeDecodeError:
-        return Response({'error': '文件编码错误，确保使用 UTF-8'}, status=400)
-    
-
-# 下载鱼类数据
-@api_view(['GET'])
-@permission_classes([IsFisher])
-def download_fish_csv(request):
-    # 获取 fisher_id
-    fisher_id = request.user.fisher.id
-    
-    # 创建响应对象，设置为 CSV 格式
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="fish_data.csv"'
-    
-    # 创建 CSV 写入器
-    writer = csv.writer(response)
-    
-    # 写入表头
-    writer.writerow([
-        'id', 'fisher_account', 'species', 'weight', 'length1', 
-        'length2', 'length3', 'height', 'width', 'is_alive', 'died_at'
-    ])
-    
-    # 查询并写入数据
-    fish_data = Fish.objects.select_related('fisher').filter(fisher_id=fisher_id)
-    
-    for fish in fish_data:
-        writer.writerow([
-            fish.id,
-            fish.fisher.id,
-            fish.species,
-            fish.weight,
-            fish.length1,
-            fish.length2,
-            fish.length3,
-            fish.height,
-            fish.width,
-            fish.is_alive,
-            fish.died_at.isoformat() if fish.died_at else '',
-        ])
-    
-    return response
-
-
-# 下载所有鱼类数据
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
-def download_all_fish_csv(request):        
-    # 创建响应对象，设置为 CSV 格式
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="fish_data.csv"'
-    
-    # 创建 CSV 写入器
-    writer = csv.writer(response)
-    
-    # 写入表头
-    writer.writerow([
-        'id', 'fisher_account', 'species', 'weight', 'length1', 
-        'length2', 'length3', 'height', 'width', 'is_alive', 'died_at'
-    ])
-    
-    # 查询并写入数据
-    fish_data = Fish.objects.select_related('fisher').all()
-    
-    for fish in fish_data:
-        writer.writerow([
-            fish.id,
-            fish.fisher.id,
-            fish.species,
-            fish.weight,
-            fish.length1,
-            fish.length2,
-            fish.length3,
-            fish.height,
-            fish.width,
-            fish.is_alive,
-            fish.died_at.isoformat() if fish.died_at else '',
-        ])
-    
-    return response
+    except Fisher.DoesNotExist:
+        return Response({"error": "未找到该渔民的信息"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": f"发生错误: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
