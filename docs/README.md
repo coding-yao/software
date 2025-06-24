@@ -60,14 +60,15 @@ Django 会在 `projectdatabase` 数据库里生成相关的表，表名为 `appn
     python manage.py makemigrations
     python manage.py migrate
     ```
+    ```shell
     python manage.py user_input
-
+    ```
    这一步会增加两个可用账号 一个账号为1密码为1的管理员 以及一个账号为22密码为22、fisher_id为1的渔民
    
     然后在backend/data目录下运行终端（否则会报找不到CSV文件），执行：
-
+    ```shell
     python fish_input.py
-   
+    ```
    上述两步会导入初始的用户与鱼类数据。
 
     
