@@ -139,13 +139,13 @@ def get_all_fish_list(request):
 def upload_fish_csv(request):    
     # 获取并验证 fisher_id
     try:
-        fisher_id = int(request.data.get("fisher_id"))
+        fisher_id = request.user.fisher.id
     except (ValueError, TypeError):
         return Response({'error': 'fisher_id 必须是有效的整数'}, status=status.HTTP_400_BAD_REQUEST)
     
     if not fisher_id:
         return Response({'error': '缺少 fisher_id 参数'}, status=status.HTTP_400_BAD_REQUEST)
-    
+       
     # 获取并验证csv数据文件
     if 'file' not in request.FILES:
         return Response({'error': '未上传文件'}, status=status.HTTP_400_BAD_REQUEST)
@@ -159,7 +159,7 @@ def upload_fish_csv(request):
         reader = csv.DictReader(decoded_file)
         
         # 验证表头
-        required_fields = {'species', 'weight', 'length1'}
+        required_fields = {'Species', 'Weight(g)', 'Length1(cm)'}
         if not required_fields.issubset(reader.fieldnames):
             missing = required_fields - set(reader.fieldnames)
             return Response({'error': f'缺少必要字段: {", ".join(missing)}'}, status=400)
@@ -173,30 +173,33 @@ def upload_fish_csv(request):
                     # 创建鱼对象
                     fish = Fish(
                         fisher_id=fisher_id,
-                        species=row['species'],
-                        weight=float(row['weight']),
-                        length1=float(row['length1']),
-                        length2=float(row.get('length2', 0)),
-                        length3=float(row.get('length3', 0)),
-                        height=float(row.get('height', 0)),
-                        width=float(row.get('width', 0)),
-                        is_alive=row.get('is_alive', 'True').lower() == 'true',
+                        species=row['Species'],
+                        weight=float(row['Weight(g)']),
+                        length1=float(row['Length1(cm)']),
+                        length2=float(row.get('Length2(cm)', 0)),
+                        length3=float(row.get('Length3(cm)', 0)),
+                        height=float(row.get('Height(cm)', 0)),
+                        width=float(row.get('Width(cm)', 0)),
+                        is_alive=row.get('is_alive', 1),
                     )
                     
-                    # 可选字段处理
-                    if row.get('died_at'):
-                        fish.died_at = datetime.fromisoformat(row['died_at'])
+                    # # 可选字段处理
+                    # if row.get('died_at'):
+                    #     fish.died_at = datetime.fromisoformat(row['died_at'])
                     
                     fish_instances.append(fish)
                 except Fisher.DoesNotExist:
                     errors.append(f'第 {i} 行：渔民账号 {row["fisher_account"]} 不存在')
                 except Exception as e:
                     errors.append(f'第 {i} 行：{str(e)}')
+
+        print(fish_instances[1].is_alive)
         
         if errors:
-            return Response({'errors': errors}, status=400)
+            return Response({'error':'here'}, status=400)
         
         Fish.objects.bulk_create(fish_instances)
+        print("ok")
         return Response({'message': f'成功导入 {len(fish_instances)} 条记录'}, status=201)
     
     except UnicodeDecodeError:

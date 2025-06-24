@@ -174,7 +174,7 @@ def update_thresholds(request):
     try:
         # 获取当前用户的 fisher 对象
         fisher = request.user.fisher
-        
+
         # 获取请求数据
         data = request.data
         
@@ -213,10 +213,10 @@ def update_thresholds(request):
                 'weight_deviation_multiplier': fisher.weight_deviation_multiplier,
                 'length_min': fisher.length_min,
                 'length_max': fisher.length_max,
-                'aspect_ratio_min': fisher.aspect_ratio_min,
-                'aspect_ratio_max': fisher.aspect_ratio_max,
-                'height_width_ratio_min': fisher.height_width_ratio_min,
-                'height_width_ratio_max': fisher.height_width_ratio_max,
+                # 'aspect_ratio_min': fisher.aspect_ratio_min,
+                # 'aspect_ratio_max': fisher.aspect_ratio_max,
+                # 'height_width_ratio_min': fisher.height_width_ratio_min,
+                # 'height_width_ratio_max': fisher.height_width_ratio_max,
                 'daily_mortality_rate_threshold': fisher.daily_mortality_rate_threshold,
             }
         }, status=status.HTTP_200_OK)

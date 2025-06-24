@@ -66,10 +66,11 @@ def check_alert(request):
                 severity = 'high' if weight_deviation > 5.0 else 'medium'
                 alerts.append({
                     'fish_id': fish.id,
-                    'alert_type': 'weight',
+                    'fish_species':fish.species,
+                    'alert_type': '重量异常',
                     'severity': severity,
                     'message': (
-                        f"鱼ID#{fish.id}重量异常：{fish.weight}kg，"
+                        f"{fish.species}鱼ID#{fish.id}重量异常：{fish.weight}kg，"
                         f"比同鱼种平均重量{species_stats['avg_weight']:.2f}kg偏差{weight_deviation:.2f}个标准差"
                     )
                 })
@@ -78,65 +79,67 @@ def check_alert(request):
             if fish.length1 < thresholds['length_min']:
                 alerts.append({
                     'fish_id': fish.id,
-                    'alert_type': 'length',
+                    'fish_species':fish.species,
+                    'alert_type': '长度异常',
                     'severity': 'medium',
-                    'message': f"鱼ID#{fish.id}长度异常：{fish.length1}cm，低于最小阈值{thresholds['length_min']}cm"
+                    'message': f"{fish.species}鱼ID#{fish.id}长度异常：{fish.length1}cm，低于最小阈值{thresholds['length_min']}cm"
                 })
             
             if fish.length1 > thresholds['length_max']:
                 alerts.append({
                     'fish_id': fish.id,
-                    'alert_type': 'length',
+                    'fish_species':fish.species,
+                    'alert_type': '长度异常',
                     'severity': 'high',
-                    'message': f"鱼ID#{fish.id}长度异常：{fish.length1}cm，超过最大阈值{thresholds['length_max']}cm"
+                    'message': f"{fish.species}鱼ID#{fish.id}长度异常：{fish.length1}cm，超过最大阈值{thresholds['length_max']}cm"
                 })
             
             # 检查体型比例异常
-            if fish.width > 0:
-                aspect_ratio = fish.length1 / fish.width
-                height_width_ratio = fish.height / fish.width
+            # if fish.width > 0:
+            #     aspect_ratio = fish.length1 / fish.width
+            #     height_width_ratio = fish.height / fish.width
                 
-                if aspect_ratio < thresholds['aspect_ratio_min']:
-                    alerts.append({
-                        'fish_id': fish.id,
-                        'alert_type': 'size_ratio',
-                        'severity': 'medium',
-                        'message': f"鱼ID#{fish.id}体型异常：长宽比{aspect_ratio:.2f}，低于最小阈值{thresholds['aspect_ratio_min']}"
-                    })
+            #     if aspect_ratio < thresholds['aspect_ratio_min']:
+            #         alerts.append({
+            #             'fish_id': fish.id,
+            #             'alert_type': 'size_ratio',
+            #             'severity': 'medium',
+            #             'message': f"鱼ID#{fish.id}体型异常：长宽比{aspect_ratio:.2f}，低于最小阈值{thresholds['aspect_ratio_min']}"
+            #         })
                 
-                if aspect_ratio > thresholds['aspect_ratio_max']:
-                    alerts.append({
-                        'fish_id': fish.id,
-                        'alert_type': 'size_ratio',
-                        'severity': 'medium',
-                        'message': f"鱼ID#{fish.id}体型异常：长宽比{aspect_ratio:.2f}，超过最大阈值{thresholds['aspect_ratio_max']}"
-                    })
+            #     if aspect_ratio > thresholds['aspect_ratio_max']:
+            #         alerts.append({
+            #             'fish_id': fish.id,
+            #             'alert_type': 'size_ratio',
+            #             'severity': 'medium',
+            #             'message': f"鱼ID#{fish.id}体型异常：长宽比{aspect_ratio:.2f}，超过最大阈值{thresholds['aspect_ratio_max']}"
+            #         })
                 
-                if height_width_ratio < thresholds['height_width_ratio_min']:
-                    alerts.append({
-                        'fish_id': fish.id,
-                        'alert_type': 'size_ratio',
-                        'severity': 'medium',
-                        'message': f"鱼ID#{fish.id}体型异常：高宽比{height_width_ratio:.2f}，低于最小阈值{thresholds['height_width_ratio_min']}"
-                    })
+            #     if height_width_ratio < thresholds['height_width_ratio_min']:
+            #         alerts.append({
+            #             'fish_id': fish.id,
+            #             'alert_type': 'size_ratio',
+            #             'severity': 'medium',
+            #             'message': f"鱼ID#{fish.id}体型异常：高宽比{height_width_ratio:.2f}，低于最小阈值{thresholds['height_width_ratio_min']}"
+            #         })
                 
-                if height_width_ratio > thresholds['height_width_ratio_max']:
-                    alerts.append({
-                        'fish_id': fish.id,
-                        'alert_type': 'size_ratio',
-                        'severity': 'medium',
-                        'message': f"鱼ID#{fish.id}体型异常：高宽比{height_width_ratio:.2f}，超过最大阈值{thresholds['height_width_ratio_max']}"
-                    })
+            #     if height_width_ratio > thresholds['height_width_ratio_max']:
+            #         alerts.append({
+            #             'fish_id': fish.id,
+            #             'alert_type': 'size_ratio',
+            #             'severity': 'medium',
+            #             'message': f"鱼ID#{fish.id}体型异常：高宽比{height_width_ratio:.2f}，超过最大阈值{thresholds['height_width_ratio_max']}"
+            #         })
         
         # 检查死亡率异常
-        today = date.today()
-        yesterday = today - timedelta(days=1)
+        # today = date.today()
+        # yesterday = today - timedelta(days=1)
         
         # 统计昨天的死亡鱼数量
         dead_fish_count = Fish.objects.filter(
             fisher=fisher,
             is_alive=False,
-            died_at__date=yesterday
+            # died_at__date=yesterday
         ).count()
         
         # 统计存活鱼数量
@@ -150,10 +153,10 @@ def check_alert(request):
                 severity = 'high' if mortality_rate > 0.05 else 'medium'
                 alerts.append({
                     'fish_id': None,  # 群体预警
-                    'alert_type': 'mortality',
+                    'alert_type': '鱼群死亡率',
                     'severity': severity,
                     'message': (
-                        f"昨日死亡率异常：{mortality_rate:.2%}，"
+                        f"鱼群死亡率：{mortality_rate:.2%}，"
                         f"超过阈值{100*fisher.daily_mortality_rate_threshold:.2f}%，"
                         f"死亡数量：{dead_fish_count}，存活数量：{alive_fish_count}"
                     )

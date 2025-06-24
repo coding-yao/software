@@ -5,7 +5,7 @@ from datetime import datetime
 # 配置数据库连接
 config = {
     'user': 'root',
-    'password': '',
+    'password': '123456',
     'host': 'localhost',
     'database': 'projectdatabase',
     'raise_on_warnings': True

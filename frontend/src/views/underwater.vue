@@ -1,7 +1,81 @@
 <template>
   <NavBar current-page="underwater" />
+
   <div class="figures-container">
-    <div ref="pieChart" style="width: 50%; height: 500px;"></div>
+
+    <!--阈值调整输入框容器-->
+    <div  v-if="isModalOpen"  class="modal-overlay">
+      <div class="modal-content">
+          <!-- 输入框1 -->
+          <div class="input-group">
+              <input type="number" placeholder="设置最小长度阈值(cm)" step="0.1" ref="lowestlength">
+          </div>
+          <!-- 输入框2 -->
+          <div class="input-group">
+              <input type="number" placeholder="设置最大长度阈值(cm)" step="0.1"ref="highestlength">
+          </div>
+          <!-- 选择框 -->
+          <div class="input-group">
+              <input type="number" placeholder="重量偏离平均阈值(标准差)" step="1" ref="weight_deviation">
+          </div>
+          <div class="input-group">
+              <input type="number" placeholder="设置死亡率阈值(%)"  step="0.1" ref="death_ratio">
+          </div>
+
+          <button @click="notdisplay()">取消</button>
+          <button @click="updatethreshold()">提交</button>
+      </div>
+    </div>
+
+    <div style="width: 50%;">
+      <!--饼图容器-->
+      <div ref="pieChart" style="height: 500px; position: relative;">
+      </div>
+      <!--下载按钮-->
+      <button class="ok" @click="downloadChart('pie')">下载饼图</button>
+      <button v-if="selectedSpecies" class="ok" @click="downloadChart('radar')">下载雷达图</button>
+      <button v-if="selectedSpecies" class="ok" @click="downloadChart('boxplot')">下载箱线图</button>
+      <button v-if="selectedSpecies" class="ok" @click="downloadChart('scatter')">下载散点图</button>
+
+      <button class="ok" @click="exportAllData">下载原始数据</button>
+      <!--上传文件部分-->
+      <div class="upload-section">
+        <input type="file" accept=".csv" @change="handleFileChange">
+        <p>上传数据文件(.csv)</p>
+        <p v-if="uploadMessage" >
+              {{ uploadMessage }}
+        </p>
+        <button v-if="csvFile" class="ok" @click="uploadCsv">点击上传</button>
+      </div>
+      <button style="margin: 5%;" class="ok" @click="displaythresholds()">修改报警信息阈值</button>
+
+      <div class="fish_alert_table">
+        <table>
+          <thead>
+          <tr>
+              <th>警告序号</th>
+              <th>警告类型</th>
+              <th>该鱼种类</th>
+              <th>具体信息</th>
+              <th>警告级别</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="(al, index) in alert_list" :key="index" class="user-row">
+              <td>{{ index+1 }}</td>
+              <td>{{ al.alert_type }}</td>
+              <td>{{ al.fish_species }}</td>
+              <td>{{ al.message }}</td>
+              <td>{{ al.severity }}</td>
+          </tr>
+          </tbody>
+
+        </table>
+
+      </div>
+    </div>
+
+
     <div v-if="selectedSpecies" class="detail-charts" style="width: 50%;">
       <div ref="radarChart" style="height: 500px;"></div>
       <div ref="boxplotChart" style="height: 500px;"></div>
@@ -12,6 +86,7 @@
 
 <script>
 import * as echarts from 'echarts';
+import Papa from 'papaparse';
 import axios from 'axios';
 import NavBar from '@/components/NavBar.vue';
 
@@ -26,12 +101,22 @@ export default {
       selectedSpecies: null,
       radarChart: null,
       boxplotChart: null,
-      scatterChart: null
+      scatterChart: null,
+
+      csvFile: null,
+      previewData: [],
+      headers: [],
+      uploadMessage: '',
+
+      alert_list:[],
+      isModalOpen:false,
     };
   },
   mounted() {
     this.fetchData();
     window.addEventListener('resize', this.resizeCharts);
+
+    this.checkfishalert();
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.resizeCharts);
@@ -40,6 +125,7 @@ export default {
     if (this.scatterChart) this.scatterChart.dispose();
   },
   methods: {
+
     async fetchData() {
       const accessToken = localStorage.getItem('accesstoken');
       try {
@@ -48,6 +134,7 @@ export default {
           { headers: { 'Authorization': `Bearer ${accessToken}` } }
         );
         this.fish_data_list = response.data.fish_group;
+        // console.log(this.fish_data_list)
         
         const speciesCount = {};
         this.fish_data_list.forEach(fish => {
@@ -62,7 +149,61 @@ export default {
         console.error('数据获取失败:', error);
       }
     },
-    
+    /*以下与阈值设置和警告等相关 */
+    async checkfishalert() {
+      const accessToken = localStorage.getItem('accesstoken');
+      try {
+        const response = await axios.get(
+          'http://localhost:8000/api/core/check_alert/',
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        this.alert_list = response.data;
+        console.log(this.alert_list);
+
+      }catch (error) {
+        console.error('警告信息获取失败:', error);
+      }
+    },
+
+    displaythresholds(){
+      this.isModalOpen = true;
+    },
+    notdisplay(){
+      this.isModalOpen = false;
+    },
+    updatethreshold(){
+      const lowestlength = parseFloat(this.$refs['lowestlength'].value); 
+      const highestlength = parseFloat(this.$refs['highestlength'].value);
+      const weight_deviation = parseFloat(this.$refs['weight_deviation'].value);
+      const death_ratio = parseFloat(this.$refs['death_ratio'].value)/100;
+
+      // death_ratio = death_ratio/100;
+      
+      const accessToken = localStorage.getItem('accesstoken');
+      const new_thresholddata = { // 构建要发送到后端的数据信息
+        weight_deviation_multiplier: weight_deviation,
+        length_min: lowestlength,
+        length_max: highestlength,
+        daily_mortality_rate_threshold: death_ratio,
+      };
+      console.log(new_thresholddata);
+      axios
+      .post(
+          `http://localhost:8000/api/user/update_thresholds/`, 
+          new_thresholddata,
+          {
+              headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              }
+          }
+      )
+      .then((response) => {   // 接收后端发来的response 或error
+          console.log(response);
+          alert('修改成功');
+          this.isModalOpen = false;
+      })
+    },
+    /* 以下画图函数 */
     renderPieChart() {
       const chartDom = this.$refs.pieChart;
       const chart = echarts.init(chartDom);
@@ -429,7 +570,183 @@ export default {
       if (this.radarChart) this.radarChart.resize();
       if (this.boxplotChart) this.boxplotChart.resize();
       if (this.scatterChart) this.scatterChart.resize();
-    }
+    },
+    // 以下解析CSV文件
+    handleFileChange(event) {
+      const file = event.target.files[0];
+      if (!file || !file.name.endsWith('.csv')) {
+        alert("请选择有效的csv文件")
+        this.uploadMessage = `CSV解析错误`;
+        return;
+      }
+      
+      this.csvFile = file;
+      this.parseCsv(file);
+    },
+    parseCsv(file) {
+      this.uploadMessage = '';
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: true,
+        complete: (results) => {
+          if (results.errors.length) {
+            this.uploadMessage = `CSV解析错误: ${results.errors[0].message}`;
+            return;
+          }
+          
+          if (!results.data.length) {
+            this.uploadMessage = 'CSV文件为空或格式不正确';
+            return;
+          }
+          
+          // 验证必需字段
+          const requiredFields = ['Species', 'Weight(g)', 'Length1(cm)', 
+                                 'Length2(cm)', 'Length3(cm)', 'Height(cm)', 'Width(cm)'];
+          const firstRow = results.data[0];
+          const missingFields = requiredFields.filter(field => !(field in firstRow));
+          
+          if (missingFields.length) {
+            this.uploadMessage = `缺少必需字段: ${missingFields.join(', ')}`;
+            return;
+          }
+          
+          this.headers = Object.keys(firstRow);
+          this.previewData = results.data;
+          this.uploadMessage = `成功解析 ${results.data.length} 条记录`;
+        },
+        error: (error) => {
+          this.uploadMessage = `CSV解析失败: ${error.message}`;
+        }
+      });
+    },
+    // 发送文件到后端
+    async uploadCsv() {
+      if (!this.csvFile || !this.previewData.length) {
+        this.uploadMessage = '请先选择有效的CSV文件';
+        return;
+      }
+      this.uploadMessage = '正在上传数据...';
+      
+      try {
+        const accessToken = localStorage.getItem('accesstoken');
+        const formData = new FormData();
+        formData.append('file', this.csvFile);
+        
+        const response = await axios.post(
+          'http://localhost:8000/api/fish/upload_fish_csv/',
+          formData,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              // 'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+        
+        this.uploadMessage = response.data.message;
+        
+        // 重置状态
+        setTimeout(() => {
+          this.csvFile = null;
+          this.previewData = [];
+          this.uploadMessage = '';
+          document.querySelector('input[type="file"]').value = '';
+        }, 3000);
+        
+      } catch (error) {
+        console.log(error.response.data.error);
+        const message = error.response?.data?.detail || '上传失败，请重试';
+        this.uploadMessage = `错误: ${message}`;
+      } finally{
+        this.fetchData();
+      }
+    },
+    //下载图表
+    downloadChart(chartType) {
+      let chartInstance = null;
+      let fileName = '';
+      
+      switch (chartType) {
+        case 'pie':
+          chartInstance = this.pieChart;
+          fileName = '物种分布饼图';
+          break;
+        case 'radar':
+          chartInstance = this.radarChart;
+          fileName = `${this.selectedSpecies}_形态特征雷达图`;
+          break;
+        case 'boxplot':
+          chartInstance = this.boxplotChart;
+          fileName = `${this.selectedSpecies}_体型分布箱线图`;
+          break;
+        case 'scatter':
+          chartInstance = this.scatterChart;
+          fileName = `${this.selectedSpecies}_体长3与重量关系散点图`;
+          break;
+        default:
+          return;
+      }
+      
+      if (!chartInstance) {
+        console.error('图表实例不存在');
+        return;
+      }
+      
+      try {
+        const dataURL = chartInstance.getDataURL({
+          type: 'png',
+          pixelRatio: 2, // 提高图片清晰度
+          backgroundColor: '#fff'
+        });
+        
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = `${fileName}_${new Date().toISOString().slice(0, 10)}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error('图表导出失败:', error);
+        alert('图表导出失败，请重试');
+      }
+    },
+    //导出当前原始数据为CSV
+    exportAllData() {
+      if (this.fish_data_list.length === 0) {
+        alert('没有可导出的数据');
+        return;
+      }
+      
+      this.exportToCSV(this.fish_data_list, '全部鱼类数据');
+    },
+    exportToCSV(data, fileName) {
+      try {
+        // 创建CSV内容
+        const csv = Papa.unparse({
+          fields: Object.keys(data[0]),
+          data: data
+        });
+        
+        // 创建Blob对象
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        
+        // 创建下载链接
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${fileName}_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error('CSV导出失败:', error);
+        alert('数据导出失败，请重试');
+      }
+    },
   }
 }
 </script>
@@ -439,10 +756,11 @@ export default {
   position: relative;
   min-height: 100vh;
   display: flex;
-  margin-top: 150px;
-  background: white;
+  margin-top: 5%;
+  /* background: white; */
   margin-left: 20px;
   margin-right: 20px;
+
 }
 
 .detail-charts {
@@ -451,4 +769,62 @@ export default {
   gap:80px;
   align-self: center;
 }
+
+/*上传区域*/
+.upload-section {
+  margin-top: 20px;
+  text-align: center;
+  padding: 15px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 4px;
+  background-color: #f5f7fa;
+  transition: border-color 0.3s;
+}
+/* 输入框 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5); /* 半透明黑色背景 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 400px;
+}
+.input-group {
+  margin-bottom: 16px;
+}
+
+/**表格样式 */
+.user-table {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+}
+
+
 </style>
